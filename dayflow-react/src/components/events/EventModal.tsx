@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CalendarEvent, Subtask } from '../../types';
-import { fmtDate, fmtDisplayTime } from '../../utils/dateUtils';
+import { fmtDate } from '../../utils/dateUtils';
 import styles from './EventModal.module.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────

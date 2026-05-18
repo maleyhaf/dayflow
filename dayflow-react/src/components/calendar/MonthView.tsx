@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { parseDate, getMonthCells, fmtDate, DAY_SHORT } from '../../utils/dateUtils';
+import { parseDate, getMonthCells, DAY_SHORT } from '../../utils/dateUtils';
 import { useDragEvent } from '../../hooks/useDragEvent';
 import EventChip from './EventChip';
 import styles from './MonthView.module.css';

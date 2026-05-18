@@ -109,7 +109,7 @@ export interface UseDragEventReturn {
 }
 
 export function useDragEvent(): UseDragEventReturn {
-  const { state, dispatch } = useApp();
+  const { dispatch } = useApp();
 
   const draggingEventRef = useRef<CalendarEvent | null>(null);
   const lastSnappedTimeRef = useRef<string>('');
