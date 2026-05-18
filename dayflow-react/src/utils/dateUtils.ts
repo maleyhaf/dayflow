@@ -1,6 +1,6 @@
 // ─── Formatting ───────────────────────────────────────────────────────────────
 
-// Local time function for Calgary
+// Local time function corrected
 export function fmtDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');

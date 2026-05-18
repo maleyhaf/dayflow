@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import TopNav from './components/layout/TopNav';
 import Sidebar from './components/layout/Sidebar';
 import CalendarView from './components/calendar/CalendarView';
+import EventModal from './components/events/EventModal';
 import { fmtDate, addDays, addMonths } from './utils/dateUtils';
 import './styles/globals.css';
 import styles from './App.module.css';
@@ -14,7 +15,6 @@ function AppShell() {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
-
       switch (e.key) {
         case 'n': case 'N':
           openNewEvent();
@@ -53,15 +53,17 @@ function AppShell() {
         <main className={styles.main}>
           <CalendarView />
         </main>
-        {/* Detail panel — next step */}
         {state.selectedEventId && (
           <aside className={styles.detail}>
             <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 13 }}>
-              Detail panel coming next
+              Detail panel — next step
             </div>
           </aside>
         )}
       </div>
+
+      {/* Modal renders above everything */}
+      <EventModal />
     </div>
   );
 }

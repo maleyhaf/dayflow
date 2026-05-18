@@ -6,7 +6,7 @@ import EventChip from './EventChip';
 import styles from './MonthView.module.css';
 
 export default function MonthView() {
-  const { state, dispatch, openNewEvent } = useApp();
+  const { state, dispatch, openNewEvent, openEditEvent } = useApp();
   const anchor = parseDate(state.currentDate);
   const cells = getMonthCells(anchor.getFullYear(), anchor.getMonth());
 
@@ -20,7 +20,10 @@ export default function MonthView() {
 
   const handleEventClick = (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
+    const ev = state.events.find(ev => ev.id === eventId);
+    if (!ev) return;
     dispatch({ type: 'SELECT_EVENT', payload: eventId });
+    openEditEvent(ev);
   };
 
   const handleDayNumClick = (e: React.MouseEvent, dateStr: string) => {

@@ -38,6 +38,7 @@ export default function WeekView() {
     const ev = state.events.find(ev => ev.id === eventId);
     if (!ev) return;
     dispatch({ type: 'SELECT_EVENT', payload: eventId });
+    openEditEvent(ev);
   };
 
   return (
