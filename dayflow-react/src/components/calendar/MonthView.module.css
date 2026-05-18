@@ -1,0 +1,115 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Day name header ───────────────────────────────────────────────────────── */
+.headerRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.headerCell {
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-hint);
+  border-right: 1px solid var(--border);
+}
+.headerCell:last-child { border-right: none; }
+
+/* ─── Grid ──────────────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ─── Cell ──────────────────────────────────────────────────────────────────── */
+.cell {
+  min-height: 96px;
+  padding: 6px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cell:hover {
+  background: var(--accent-light);
+}
+
+.cellOther {
+  background: var(--bg);
+  opacity: 0.55;
+}
+.cellOther:hover {
+  opacity: 0.85;
+}
+
+.cellToday {
+  background: var(--accent-light);
+}
+
+/* ─── Date number ───────────────────────────────────────────────────────────── */
+.dateNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.dateNum:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.dateNumToday {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+
+/* ─── Events ────────────────────────────────────────────────────────────────── */
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.overflow {
+  font-size: 10px;
+  color: var(--text-hint);
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.overflow:hover {
+  background: var(--surface2);
+  color: var(--text-muted);
+}

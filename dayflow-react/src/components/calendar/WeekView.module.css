@@ -1,0 +1,149 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ─── Sticky header row ─────────────────────────────────────────────────────── */
+.headerRow {
+  display: grid;
+  grid-template-columns: 56px repeat(7, 1fr);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.gutterHeader {
+  border-right: 1px solid var(--border);
+}
+
+.dayHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px 10px;
+  border-right: 1px solid var(--border);
+  gap: 2px;
+}
+
+.dayName {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-hint);
+}
+
+.dayNum {
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-muted);
+  line-height: 1;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.dayNumToday {
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 500;
+  font-size: 17px;
+}
+
+/* ─── Scrollable body ───────────────────────────────────────────────────────── */
+.body {
+  display: grid;
+  grid-template-columns: 56px repeat(7, 1fr);
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ─── Time gutter ───────────────────────────────────────────────────────────── */
+.gutter {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.gutterCell {
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0 8px;
+  padding-top: 3px;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeLabel {
+  font-size: 10px;
+  color: var(--text-hint);
+  white-space: nowrap;
+}
+
+/* ─── Day column ────────────────────────────────────────────────────────────── */
+.dayCol {
+  position: relative;
+  border-right: 1px solid var(--border);
+}
+
+.hourSlot {
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.hourSlot:hover {
+  background: var(--accent-light);
+}
+
+/* Half-hour line */
+.hourSlot::after {
+  content: '';
+  display: block;
+  position: absolute;
+  left: 0; right: 0;
+  top: 24px;
+  height: 1px;
+  background: var(--border);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ─── Current time ──────────────────────────────────────────────────────────── */
+.nowLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.nowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-left: -4px;
+}
+
+.nowBar {
+  flex: 1;
+  height: 1.5px;
+  background: var(--accent);
+  opacity: 0.7;
+}

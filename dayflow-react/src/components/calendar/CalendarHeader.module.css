@@ -1,0 +1,127 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Nav arrows */
+.navBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.navBtn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+/* Title */
+.title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: -0.3px;
+  color: var(--text);
+  margin: 0 6px;
+  white-space: nowrap;
+}
+
+/* Today */
+.todayBtn {
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-left: 4px;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+.todayBtn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+/* Active filter badge */
+.filterBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 14px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+.filterDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.filterClear {
+  font-size: 11px;
+  color: var(--accent);
+  opacity: 0.7;
+  margin-left: 2px;
+  padding: 0 2px;
+  transition: opacity var(--transition);
+}
+.filterClear:hover { opacity: 1; }
+
+/* Sync status */
+.syncStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-hint);
+  padding: 4px 8px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+}
+.syncStatus:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+.syncDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34A853;
+  flex-shrink: 0;
+}
