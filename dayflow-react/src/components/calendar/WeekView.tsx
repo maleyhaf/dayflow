@@ -1,10 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
-  parseDate, getWeekDays, fmtDate, isSameDay, isToday,
-  fmtHourLabel, timeToY, timeDurationPx,
-  SLOT_HEIGHT, DAY_SHORT,
+  parseDate, getWeekDays, fmtDate,
+  fmtHourLabel, timeToY, timeDurationPx, SLOT_HEIGHT, DAY_SHORT,
 } from '../../utils/dateUtils';
+import { useDragEvent } from '../../hooks/useDragEvent';
 import EventChip from './EventChip';
 import styles from './WeekView.module.css';
 
@@ -13,27 +13,28 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export default function WeekView() {
   const { state, dispatch, openNewEvent, openEditEvent } = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const anchor = parseDate(state.currentDate);
-  const days = getWeekDays(anchor);
-  const todayStr = fmtDate(new Date());
+  const anchor    = parseDate(state.currentDate);
+  const days      = getWeekDays(anchor);
+  const todayStr  = fmtDate(new Date());
 
-  // Scroll to 7am on mount / week change
+  const { getChipDragProps, getWeekColDropProps } = useDragEvent();
+
+  // Scroll to 7am on week change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 7 * SLOT_HEIGHT - 16;
     }
   }, [state.currentDate]);
 
-  const filteredEvents = state.activeFilter
+  const filtered = state.activeFilter
     ? state.events.filter(e => e.category === state.activeFilter)
     : state.events;
 
   const handleSlotClick = (dateStr: string, hour: number) => {
-    const time = `${String(hour).padStart(2, '0')}:00`;
-    openNewEvent(dateStr, time);
+    openNewEvent(dateStr, `${String(hour).padStart(2, '0')}:00`);
   };
 
-  const handleEventClick = (e: React.MouseEvent, eventId: string) => {
+  const handleChipClick = (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
     const ev = state.events.find(ev => ev.id === eventId);
     if (!ev) return;
@@ -43,14 +44,12 @@ export default function WeekView() {
 
   return (
     <div className={styles.container}>
-      {/* Sticky column headers */}
+      {/* Sticky header */}
       <div className={styles.headerRow}>
-        {/* Time gutter header */}
         <div className={styles.gutterHeader} />
-
         {days.map(day => {
           const dateStr = fmtDate(day);
-          const today = dateStr === todayStr;
+          const today   = dateStr === todayStr;
           return (
             <div key={dateStr} className={styles.dayHeader}>
               <span className={styles.dayName}>{DAY_SHORT[day.getDay()]}</span>
@@ -73,53 +72,94 @@ export default function WeekView() {
           ))}
         </div>
 
-        {/* Day columns */}
-        {days.map(day => {
-          const dateStr = fmtDate(day);
-          const dayEvents = filteredEvents.filter(e => e.date === dateStr);
-
-          return (
-            <div key={dateStr} className={styles.dayCol}>
-              {/* Hour slot backgrounds — clickable */}
-              {HOURS.map(h => (
-                <div
-                  key={h}
-                  className={styles.hourSlot}
-                  onClick={() => handleSlotClick(dateStr, h)}
-                />
-              ))}
-
-              {/* Current time indicator */}
-              {dateStr === todayStr && <CurrentTimeLine />}
-
-              {/* Events */}
-              {dayEvents.map(ev => {
-                const top = timeToY(ev.start);
-                const height = timeDurationPx(ev.start, ev.end || ev.start);
-                return (
-                  <EventChip
-                    key={ev.id}
-                    event={ev}
-                    variant="week"
-                    style={{ top, height }}
-                    onClick={e => handleEventClick(e, ev.id)}
-                  />
-                );
-              })}
-            </div>
-          );
-        })}
+        {/* Day columns — one per day, each gets its own colRef */}
+        {days.map(day => (
+          <DayColumn
+            key={fmtDate(day)}
+            day={day}
+            todayStr={todayStr}
+            events={filtered.filter(e => e.date === fmtDate(day))}
+            draggingEventId={state.draggingEventId}
+            scrollRef={scrollRef}
+            getChipDragProps={getChipDragProps}
+            getWeekColDropProps={getWeekColDropProps}
+            onSlotClick={handleSlotClick}
+            onChipClick={handleChipClick}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── Current Time Indicator ────────────────────────────────────────────────────
+// ─── DayColumn ─────────────────────────────────────────────────────────────────
+// Separated so each column has its own ref for drop-position math.
+
+interface DayColumnProps {
+  day: Date;
+  todayStr: string;
+  events: ReturnType<typeof useApp>['state']['events'];
+  draggingEventId: string | null;
+  scrollRef: React.RefObject<HTMLDivElement>;
+  getChipDragProps: ReturnType<typeof useDragEvent>['getChipDragProps'];
+  getWeekColDropProps: ReturnType<typeof useDragEvent>['getWeekColDropProps'];
+  onSlotClick: (dateStr: string, hour: number) => void;
+  onChipClick: (e: React.MouseEvent, id: string) => void;
+}
+
+function DayColumn({
+  day, todayStr, events, draggingEventId,
+  scrollRef, getChipDragProps, getWeekColDropProps,
+  onSlotClick, onChipClick,
+}: DayColumnProps) {
+  const colRef  = useRef<HTMLDivElement>(null);
+  const dateStr = fmtDate(day);
+
+  // We pass scrollRef so the drop handler can subtract scroll offset
+  const dropProps = getWeekColDropProps(dateStr, scrollRef);
+
+  return (
+    <div
+      ref={colRef}
+      className={styles.dayCol}
+      {...dropProps}
+    >
+      {/* Hour slot backgrounds — clickable, but NOT the drop target */}
+      {HOURS.map(h => (
+        <div
+          key={h}
+          className={styles.hourSlot}
+          onClick={() => onSlotClick(dateStr, h)}
+        />
+      ))}
+
+      {/* Current time indicator */}
+      {dateStr === todayStr && <CurrentTimeLine />}
+
+      {/* Events */}
+      {events.map(ev => (
+        <EventChip
+          key={ev.id}
+          event={ev}
+          variant="week"
+          isDragging={draggingEventId === ev.id}
+          dragProps={getChipDragProps(ev)}
+          style={{
+            top:    timeToY(ev.start),
+            height: timeDurationPx(ev.start, ev.end || ev.start),
+          }}
+          onClick={e => onChipClick(e, ev.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Current time line ─────────────────────────────────────────────────────────
 
 function CurrentTimeLine() {
   const now = new Date();
   const top = (now.getHours() + now.getMinutes() / 60) * SLOT_HEIGHT;
-
   return (
     <div className={styles.nowLine} style={{ top }}>
       <div className={styles.nowDot} />

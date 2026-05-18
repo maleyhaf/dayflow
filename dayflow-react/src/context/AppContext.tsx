@@ -78,6 +78,7 @@ interface AppState {
   syncModalOpen: boolean;
   theme: ColorTheme;
   isDark: boolean;
+  draggingEventId: string | null;
 }
 
 // ─── Actions ───────────────────────────────────────────────────────────────────
@@ -96,7 +97,8 @@ type Action =
   | { type: 'SET_SYNC_MODAL'; payload: boolean }
   | { type: 'SET_THEME'; payload: ColorTheme }
   | { type: 'TOGGLE_DARK' }
-  | { type: 'IMPORT_GCAL_EVENTS'; payload: CalendarEvent[] };
+  | { type: 'IMPORT_GCAL_EVENTS'; payload: CalendarEvent[] }
+  | { type: 'SET_DRAGGING'; payload: string | null };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────────
 
@@ -137,6 +139,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, theme: action.payload };
     case 'TOGGLE_DARK':
       return { ...state, isDark: !state.isDark };
+    case 'SET_DRAGGING':
+      return { ...state, draggingEventId: action.payload };
     case 'IMPORT_GCAL_EVENTS': {
       const incoming = action.payload.filter(
         ge => !state.events.some(e => e.gcalId === ge.gcalId)
@@ -183,6 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     syncModalOpen:   false,
     theme:           'default',
     isDark:          false,
+    draggingEventId: null,
   };
 
   const [state, dispatch] = useReducer(reducer, initialState);

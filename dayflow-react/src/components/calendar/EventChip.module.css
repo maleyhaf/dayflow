@@ -84,3 +84,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ─── Drag states ─────────────────────────────────────────────────────────── */
+.dragging {
+  opacity: 0.35 !important;
+  cursor: grabbing !important;
+}
+
+.week { cursor: grab; }
+.month { cursor: grab; }

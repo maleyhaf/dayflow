@@ -1,24 +1,22 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { parseDate, getMonthCells, fmtDate } from '../../utils/dateUtils';
-import { DAY_SHORT } from '../../utils/dateUtils';
+import { parseDate, getMonthCells, fmtDate, DAY_SHORT } from '../../utils/dateUtils';
+import { useDragEvent } from '../../hooks/useDragEvent';
 import EventChip from './EventChip';
 import styles from './MonthView.module.css';
 
 export default function MonthView() {
   const { state, dispatch, openNewEvent, openEditEvent } = useApp();
   const anchor = parseDate(state.currentDate);
-  const cells = getMonthCells(anchor.getFullYear(), anchor.getMonth());
+  const cells  = getMonthCells(anchor.getFullYear(), anchor.getMonth());
 
-  const filteredEvents = state.activeFilter
+  const { getChipDragProps, getMonthCellDropProps } = useDragEvent();
+
+  const filtered = state.activeFilter
     ? state.events.filter(e => e.category === state.activeFilter)
     : state.events;
 
-  const handleCellClick = (dateStr: string) => {
-    openNewEvent(dateStr, '09:00');
-  };
-
-  const handleEventClick = (e: React.MouseEvent, eventId: string) => {
+  const handleChipClick = (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
     const ev = state.events.find(ev => ev.id === eventId);
     if (!ev) return;
@@ -28,25 +26,22 @@ export default function MonthView() {
 
   const handleDayNumClick = (e: React.MouseEvent, dateStr: string) => {
     e.stopPropagation();
-    // Jump to week view on that date
     dispatch({ type: 'SET_DATE', payload: dateStr });
     dispatch({ type: 'SET_VIEW', payload: 'week' });
   };
 
   return (
     <div className={styles.container}>
-      {/* Day-name header row */}
       <div className={styles.headerRow}>
         {DAY_SHORT.map(d => (
           <div key={d} className={styles.headerCell}>{d}</div>
         ))}
       </div>
 
-      {/* Month grid */}
       <div className={styles.grid}>
         {cells.map(({ date, dateStr, isCurrentMonth, isToday }) => {
-          const dayEvents = filteredEvents.filter(e => e.date === dateStr);
-          const overflow = dayEvents.length > 3;
+          const dayEvents = filtered.filter(e => e.date === dateStr);
+          const dropProps = getMonthCellDropProps(dateStr);
 
           return (
             <div
@@ -55,10 +50,10 @@ export default function MonthView() {
                 styles.cell,
                 !isCurrentMonth ? styles.cellOther : '',
                 isToday ? styles.cellToday : '',
-              ].join(' ')}
-              onClick={() => handleCellClick(dateStr)}
+              ].filter(Boolean).join(' ')}
+              onClick={() => openNewEvent(dateStr, '09:00')}
+              {...dropProps}
             >
-              {/* Date number */}
               <span
                 className={`${styles.dateNum} ${isToday ? styles.dateNumToday : ''}`}
                 onClick={e => handleDayNumClick(e, dateStr)}
@@ -66,17 +61,18 @@ export default function MonthView() {
                 {date.getDate()}
               </span>
 
-              {/* Events */}
               <div className={styles.events}>
                 {dayEvents.slice(0, 3).map(ev => (
                   <EventChip
                     key={ev.id}
                     event={ev}
                     variant="month"
-                    onClick={e => handleEventClick(e, ev.id)}
+                    isDragging={state.draggingEventId === ev.id}
+                    dragProps={getChipDragProps(ev)}
+                    onClick={e => handleChipClick(e, ev.id)}
                   />
                 ))}
-                {overflow && (
+                {dayEvents.length > 3 && (
                   <div
                     className={styles.overflow}
                     onClick={e => {
