@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Category, ThemePreset, ColorTheme } from '../../types';
+import { ThemePreset, ColorTheme } from '../../types';
+import { PRESETS, applyThemeValue } from '../../context/theme';
 import styles from './Sidebar.module.css';
+import CategoryModal from '../ui/CategoryModal';
 
 // ─── Mini Calendar ─────────────────────────────────────────────────────────────
 
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTH_NAMES = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
 function MiniCalendar() {
@@ -97,6 +99,9 @@ function MiniCalendar() {
 function CategoryList() {
   const { state, dispatch } = useApp();
 
+  // modal for category creation
+  const [catModalOpen, setCatModalOpen] = useState(false);
+
   const handleFilter = (id: string) => {
     dispatch({
       type: 'SET_FILTER',
@@ -104,7 +109,10 @@ function CategoryList() {
     });
   };
 
+  /*
+  OLD VERSION
   const handleAdd = () => {
+    // get user input category name, icon and color
     const name = window.prompt('Category name:');
     if (!name?.trim()) return;
     const colors = ['#8B5CF6', '#F43F5E', '#06B6D4', '#F59E0B', '#10B981'];
@@ -117,6 +125,7 @@ function CategoryList() {
     };
     dispatch({ type: 'ADD_CATEGORY', payload: newCat });
   };
+  */
 
   return (
     <div className={styles.section}>
@@ -140,78 +149,26 @@ function CategoryList() {
           </button>
         );
       })}
-      <button className={styles.addCatBtn} onClick={handleAdd}>
+      <button className={styles.addCatBtn} onClick={() => setCatModalOpen(true)}>
         + Add category
       </button>
+
+      {catModalOpen && (
+        <CategoryModal
+          onClose={() => setCatModalOpen(false)}
+          onSave={(cat) => {
+            dispatch({ type: 'ADD_CATEGORY', payload: cat });
+            setCatModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
 
 // ─── Palette ───────────────────────────────────────────────────────────────────
 
-const PRESETS: Record<ColorTheme, ThemePreset> = {
-  default: {
-    label: 'Default',
-    accent: '#2D5BE3',
-    bg: '#F7F4EE',
-    surface: '#FFFFFF',
-    surface2: '#F0EDE6',
-    dots: ['#2D5BE3', '#6366F1', '#A5B4FC'],
-  },
-  warm: {
-    label: 'Warm sunset',
-    accent: '#E85D75',
-    bg: '#FFF8F5',
-    surface: '#FFFFFF',
-    surface2: '#FFF0EB',
-    dots: ['#E85D75', '#F4A261', '#E9C46A'],
-  },
-  ocean: {
-    label: 'Ocean breeze',
-    accent: '#1A6DB5',
-    bg: '#F0F7FF',
-    surface: '#FFFFFF',
-    surface2: '#E8F4FF',
-    dots: ['#1A6DB5', '#00B4D8', '#90E0EF'],
-  },
-  forest: {
-    label: 'Forest calm',
-    accent: '#2D6A4F',
-    bg: '#F2FAF5',
-    surface: '#FFFFFF',
-    surface2: '#E8F7EE',
-    dots: ['#2D6A4F', '#52B788', '#D8F3DC'],
-  },
-  mono: {
-    label: 'Monochrome',
-    accent: '#2D2D2D',
-    bg: '#F5F5F5',
-    surface: '#FFFFFF',
-    surface2: '#EBEBEB',
-    dots: ['#2D2D2D', '#6B6B6B', '#C2C2C2'],
-  },
-};
 
-function hexToRgb(hex: string) {
-  const h = hex.replace('#', '');
-  return `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`;
-}
-
-function applyTheme(preset: ThemePreset, isDark: boolean) {
-  const root = document.documentElement;
-  root.style.setProperty('--accent', preset.accent);
-  root.style.setProperty('--accent-light', `rgba(${hexToRgb(preset.accent)},0.11)`);
-  if (isDark) {
-    // In dark mode, don't override surfaces — let body.dark CSS vars handle them
-    root.style.removeProperty('--bg');
-    root.style.removeProperty('--surface');
-    root.style.removeProperty('--surface2');
-  } else {
-    root.style.setProperty('--bg', preset.bg);
-    root.style.setProperty('--surface', preset.surface);
-    root.style.setProperty('--surface2', preset.surface2);
-  }
-}
 
 function PalettePanel() {
   const { state, dispatch } = useApp();
@@ -220,16 +177,16 @@ function PalettePanel() {
 
   const handlePreset = (key: ColorTheme) => {
     dispatch({ type: 'SET_THEME', payload: key });
-    applyTheme(PRESETS[key], state.isDark);
+    // apply immediately for snappy feedback; AppContext will also apply and persist
+    applyThemeValue(key, state.isDark);
   };
 
   const handleApplyHex = () => {
     const val = hexValue.trim();
     if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
       setHexError(false);
-      const root = document.documentElement;
-      root.style.setProperty('--accent', val);
-      root.style.setProperty('--accent-light', `rgba(${hexToRgb(val)},0.11)`);
+      dispatch({ type: 'SET_THEME', payload: val });
+      applyThemeValue(val, state.isDark);
     } else {
       setHexError(true);
       setTimeout(() => setHexError(false), 1200);

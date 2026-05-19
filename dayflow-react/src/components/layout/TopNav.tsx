@@ -10,6 +10,13 @@ export default function TopNav() {
     dispatch({ type: 'SET_VIEW', payload: view });
   };
 
+  // save if toggle dark
+  const handleToggleDark = () => {
+    dispatch({ type: 'TOGGLE_DARK' });
+    // Persist dark mode preference in localStorage so it can be loaded on next visit
+    localStorage.setItem('df_isDark', String(!state.isDark));
+  }
+
   return (
     <header className={styles.nav}>
       {/* Logo */}
@@ -44,7 +51,7 @@ export default function TopNav() {
         {/* Dark mode */}
         <button
           className={styles.iconBtn}
-          onClick={() => dispatch({ type: 'TOGGLE_DARK' })}
+          onClick={() => handleToggleDark()}
           title="Toggle dark mode"
           aria-label="Toggle dark mode"
         >

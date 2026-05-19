@@ -8,6 +8,7 @@ interface Props {
   onClick: (e: React.MouseEvent) => void;
   variant?: 'week' | 'month';
   style?: React.CSSProperties;
+  categoryIcon?: string; // for the icon to show on event chip
   isDragging?: boolean;
   dragProps?: {
     draggable: true;
@@ -25,7 +26,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 export default function EventChip({
-  event, onClick, variant = 'week', style, isDragging, dragProps,
+  event, onClick, variant = 'week', style, categoryIcon, isDragging, dragProps,
 }: Props) {
   const bg = hexToRgba(event.color, 0.14);
   const totalSubtasks = event.subtasks.length;
@@ -60,6 +61,7 @@ export default function EventChip({
     >
       <div className={styles.weekTitle}
         style={{ textDecoration: event.completed ? 'line-through' : 'none' }}>
+        {categoryIcon && <span className={styles.categoryIcon}>{categoryIcon}</span>}
         {event.title}
       </div>
       <div className={styles.weekMeta}>

@@ -136,16 +136,16 @@ export default function EventModal() {
   const existing = modal.editingEvent;
 
   // Form state
-  const [title, setTitle]         = useState('');
-  const [date, setDate]           = useState('');
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime]     = useState('10:00');
-  const [color, setColor]         = useState(EVENT_COLORS[4]);
-  const [category, setCategory]   = useState('');
-  const [details, setDetails]     = useState('');
+  const [endTime, setEndTime] = useState('10:00');
+  const [color, setColor] = useState(EVENT_COLORS[4]);
+  const [category, setCategory] = useState('');
+  const [details, setDetails] = useState('');
   const [completed, setCompleted] = useState(false);
-  const [gcalSync, setGcalSync]   = useState(true);
-  const [subtasks, setSubtasks]   = useState<Subtask[]>([]);
+  const [gcalSync, setGcalSync] = useState(true);
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [titleError, setTitleError] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
@@ -187,15 +187,25 @@ export default function EventModal() {
     dispatch({ type: 'CLOSE_MODAL' });
   }, [dispatch]);
 
-  // Close on Escape
+
+  const handleSaveRef = useRef<() => void>(() => { });
+  // Keep the ref updated on every render
+  useEffect(() => {
+    handleSaveRef.current = handleSave;
+  });
+
+  // Close and save on Escape
   useEffect(() => {
     if (!modal.open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape') {
+        if (isEdit) handleSaveRef.current();
+        else close();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [modal.open, close]);
+  }, [modal.open, isEdit, close]);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === overlayRef.current) close();

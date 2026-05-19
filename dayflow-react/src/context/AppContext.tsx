@@ -11,8 +11,8 @@ import {
   Category,
   ViewMode,
   EventModalState,
-  ColorTheme,
 } from '../types';
+import { applyThemeValue } from './theme';
 
 // ─── Default Data ──────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ interface AppState {
   selectedEventId: string | null;
   modal: EventModalState;
   syncModalOpen: boolean;
-  theme: ColorTheme;
+  theme: string;
   isDark: boolean;
   draggingEventId: string | null;
 }
@@ -95,7 +95,7 @@ type Action =
   | { type: 'OPEN_MODAL'; payload: Omit<EventModalState, 'open'> }
   | { type: 'CLOSE_MODAL' }
   | { type: 'SET_SYNC_MODAL'; payload: boolean }
-  | { type: 'SET_THEME'; payload: ColorTheme }
+  | { type: 'SET_THEME'; payload: string }
   | { type: 'TOGGLE_DARK' }
   | { type: 'IMPORT_GCAL_EVENTS'; payload: CalendarEvent[] }
   | { type: 'SET_DRAGGING'; payload: string | null };
@@ -169,7 +169,13 @@ const AppContext = createContext<AppContextValue | null>(null);
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key);
-    return v ? (JSON.parse(v) as T) : fallback;
+    if (!v) return fallback;
+    try {
+      return JSON.parse(v) as T;
+    } catch {
+      // value is not JSON - return raw string as T
+      return (v as unknown) as T;
+    }
   } catch {
     return fallback;
   }
@@ -185,8 +191,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     selectedEventId: null,
     modal:           { open: false, mode: 'create' },
     syncModalOpen:   false,
-    theme:           'default',
-    isDark:          false,
+    theme:           loadFromStorage('df_theme', 'default'),
+    isDark:          loadFromStorage('df_isDark', false),
     draggingEventId: null,
   };
 
@@ -213,6 +219,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       document.body.classList.remove('dark');
     }
   }, [state.isDark]);
+
+  // Apply and persist theme (preset key or raw hex) whenever it or dark-mode changes
+  useEffect(() => {
+    try {
+      applyThemeValue(state.theme, state.isDark);
+    } catch (e) {
+      // ignore
+    }
+    try {
+      localStorage.setItem('df_theme', JSON.stringify(state.theme));
+    } catch {}
+  }, [state.theme, state.isDark]);
+
+  // Persist dark-mode preference
+  useEffect(() => {
+    try { localStorage.setItem('df_isDark', JSON.stringify(state.isDark)); } catch {}
+  }, [state.isDark]);
+
 
   const openNewEvent = useCallback((date?: string, time?: string) => {
     dispatch({

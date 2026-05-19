@@ -35,6 +35,12 @@
   text-overflow: ellipsis;
 }
 
+.chipIcon {
+  font-size: 10px;
+  margin-right: 3px;
+  opacity: 0.9;
+}
+
 .weekMeta {
   font-size: 10px;
   opacity: 0.75;

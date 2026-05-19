@@ -112,6 +112,7 @@ function DayColumn({
   scrollRef, getChipDragProps, getWeekColDropProps,
   onSlotClick, onChipClick,
 }: DayColumnProps) {
+  const { state } = useApp(); // for event categories 
   const colRef  = useRef<HTMLDivElement>(null);
   const dateStr = fmtDate(day);
 
@@ -144,6 +145,7 @@ function DayColumn({
           variant="week"
           isDragging={draggingEventId === ev.id}
           dragProps={getChipDragProps(ev)}
+          categoryIcon={state.categories.find(c => c.id === ev.category)?.icon}
           style={{
             top:    timeToY(ev.start),
             height: timeDurationPx(ev.start, ev.end || ev.start),

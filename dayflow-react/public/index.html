@@ -6,6 +6,76 @@
     <meta name="theme-color" content="#2D5BE3" />
     <meta name="description" content="DayFlow — Personal planner with Google Calendar sync" />
     <title>DayFlow</title>
+    <script>
+      // Apply saved theme before the app mounts to avoid a flash of defaults.
+      (function(){
+        try {
+          var isDarkRaw = localStorage.getItem('df_isDark');
+          var isDark = false;
+          if (isDarkRaw) {
+            try { isDark = JSON.parse(isDarkRaw); } catch(e) { isDark = isDarkRaw === 'true'; }
+          }
+
+          var themeRaw = localStorage.getItem('df_theme');
+          var theme = null;
+          if (themeRaw) {
+            try { theme = JSON.parse(themeRaw); } catch(e) { theme = themeRaw; }
+          }
+
+          var presets = {
+            default: { accent: '#2D5BE3', bg: '#F7F4EE', surface: '#FFFFFF', surface2: '#F0EDE6' },
+            warm:    { accent: '#E85D75', bg: '#FFF8F5', surface: '#FFFFFF', surface2: '#FFF0EB' },
+            ocean:   { accent: '#1A6DB5', bg: '#F0F7FF', surface: '#FFFFFF', surface2: '#E8F4FF' },
+            forest:  { accent: '#2D6A4F', bg: '#F2FAF5', surface: '#FFFFFF', surface2: '#E8F7EE' },
+            mono:    { accent: '#2D2D2D', bg: '#F5F5F5', surface: '#FFFFFF', surface2: '#EBEBEB' }
+          };
+
+          function hexToRgb(h) {
+            var s = (h||'#000000').replace('#','');
+            return parseInt(s.slice(0,2),16)+','+parseInt(s.slice(2,4),16)+','+parseInt(s.slice(4,6),16);
+          }
+
+          // Build an inline style rule so the browser can apply it immediately
+          var css = '';
+
+          if (isDark) css += 'body{background:var(--bg);} body.dark {}';
+
+          if (theme) {
+            if (typeof theme === 'string' && theme[0] === '#') {
+              css += ':root{ --accent: ' + theme + '; --accent-light: rgba(' + hexToRgb(theme) + ',0.11); }';
+              // do not change surfaces for raw hex
+            } else if (presets[theme]) {
+              var p = presets[theme];
+              css += ':root{ --accent: ' + p.accent + '; --accent-light: rgba(' + hexToRgb(p.accent) + ',0.11);';
+              if (!isDark) css += ' --bg: ' + p.bg + '; --surface: ' + p.surface + '; --surface2: ' + p.surface2 + ';';
+              css += ' }';
+              // also add a critical body rule with !important so first paint uses the chosen bg
+              try {
+                css += ' body{ background: ' + p.bg + ' !important; color: ' + (isDark ? '#F0EDE6' : '#1A1814') + ' !important; }';
+                if (isDark) css += ' body.dark{ background: ' + (p.surface || '#111010') + ' !important; }';
+              } catch(e) {}
+              // set meta theme-color to accent so mobile UI matches
+              try {
+                var m = document.querySelector('meta[name="theme-color"]');
+                if (m) m.setAttribute('content', p.accent);
+              } catch (e) {}
+            }
+          }
+
+          if (css) {
+            var s = document.createElement('style');
+            s.id = 'df-theme-inline';
+            s.appendChild(document.createTextNode(css));
+            document.head.appendChild(s);
+          }
+
+          if (isDark) document.body.classList.add('dark');
+
+        } catch (e) {
+          // ignore
+        }
+      })();
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run DayFlow.</noscript>

@@ -39,6 +39,14 @@ function AppShell() {
           dispatch({ type: 'SET_DATE', payload: fmtDate(next) });
           break;
         }
+        case 'W': case 'w': {
+          dispatch({ type: 'SET_VIEW', payload: 'week' });
+          break;
+        }
+        case 'M': case 'm': {
+          dispatch({ type: 'SET_VIEW', payload: 'month' });
+          break;
+        }
       }
     };
     window.addEventListener('keydown', handler);
