@@ -11,6 +11,7 @@ import {
   Category,
   ViewMode,
   EventModalState,
+  SettingsModalState,
 } from '../types';
 import { applyThemeValue } from './theme';
 
@@ -78,6 +79,7 @@ interface AppState {
   syncModalOpen: boolean;
   theme: string;
   isDark: boolean;
+  settingsModal: SettingsModalState;
   draggingEventId: string | null;
 }
 
@@ -97,6 +99,7 @@ type Action =
   | { type: 'SET_SYNC_MODAL'; payload: boolean }
   | { type: 'SET_THEME'; payload: string }
   | { type: 'TOGGLE_DARK' }
+  | { type: 'OPEN_SETTINGS' }
   | { type: 'IMPORT_GCAL_EVENTS'; payload: CalendarEvent[] }
   | { type: 'SET_DRAGGING'; payload: string | null };
 
@@ -139,6 +142,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, theme: action.payload };
     case 'TOGGLE_DARK':
       return { ...state, isDark: !state.isDark };
+    case 'OPEN_SETTINGS':
+      return { ...state, settingsModal: { open: true } };
     case 'SET_DRAGGING':
       return { ...state, draggingEventId: action.payload };
     case 'IMPORT_GCAL_EVENTS': {
@@ -193,6 +198,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     syncModalOpen:   false,
     theme:           loadFromStorage('df_theme', 'default'),
     isDark:          loadFromStorage('df_isDark', false),
+    settingsModal:   { open: false},
     draggingEventId: null,
   };
 

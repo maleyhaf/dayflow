@@ -63,15 +63,32 @@ export function applyPreset(preset: ThemePreset, isDark: boolean) {
   }
 }
 
+// Blends a hex color toward white by `amount` (0 = white, 1 = full hex color)
+function mixWithWhite(hex: string, amount: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const mix = (c: number) => Math.round(c * amount + 255 * (1 - amount));
+  const toHex = (c: number) => c.toString(16).padStart(2, '0');
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
+
 export function applyAccentHex(hex: string, isDark: boolean) {
   const root = document.documentElement;
   root.style.setProperty('--accent', hex);
   root.style.setProperty('--accent-light', `rgba(${hexToRgb(hex)},0.11)`);
-  // For a raw accent hex we don't change surface colors — leave preset surfaces untouched
+
   if (isDark) {
     root.style.removeProperty('--bg');
     root.style.removeProperty('--surface');
     root.style.removeProperty('--surface2');
+  } else {
+    // Mirrors the preset pattern: surface stays white, bg/surface2 are
+    // light accent tints (surface2 slightly stronger than bg)
+    root.style.setProperty('--bg', mixWithWhite(hex, 0.05));
+    root.style.setProperty('--surface', '#FFFFFF');
+    root.style.setProperty('--surface2', mixWithWhite(hex, 0.11));
   }
 }
 

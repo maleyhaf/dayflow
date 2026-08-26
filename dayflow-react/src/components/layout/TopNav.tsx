@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ViewMode } from '../../types';
 import styles from './TopNav.module.css';
+import SettingsModal from '../ui/SettingsModal';
 
 export default function TopNav() {
   const { state, dispatch } = useApp();
+
+  // settings modal state
+  const [setModalOpen, setSetModalOpen] = useState(false);
 
   const handleViewChange = (view: ViewMode) => {
     dispatch({ type: 'SET_VIEW', payload: view });
@@ -58,6 +62,26 @@ export default function TopNav() {
           {state.isDark ? '☀' : '☽'}
         </button>
 
+        {/* Settings */}
+        <button
+          className={styles.iconBtn}
+          onClick={() => setSetModalOpen(true)}
+          title="Settings"
+          aria-label="Settings"
+        >
+          ⚙
+        </button>
+
+        {setModalOpen && (
+          <SettingsModal
+            onClose={() => setSetModalOpen(false)}
+            onSave={ (theme) => {
+              dispatch({ type: 'SET_THEME', payload: theme });
+              setSetModalOpen(false);
+            }}
+          />
+        )}
+
         {/* New event */}
         <button
           className={styles.newBtn}
@@ -69,6 +93,8 @@ export default function TopNav() {
           <span aria-hidden>+</span> New event
         </button>
       </div>
+
+
     </header>
   );
 }

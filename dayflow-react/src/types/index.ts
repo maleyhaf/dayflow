@@ -55,6 +55,14 @@ export interface EventModalState {
   editingEvent?: CalendarEvent;
 }
 
+// Settings modal
+export interface SettingsModalState {
+  open: boolean;
+  //mode: 'edit' | 'theme';
+  defaultTheme?: ColorTheme;
+}
+
+
 // ─── Google Calendar ──────────────────────────────────────────────────────────
 
 export interface GCalEvent {
