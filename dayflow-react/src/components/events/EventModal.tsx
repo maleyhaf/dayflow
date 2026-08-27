@@ -385,7 +385,7 @@ export default function EventModal() {
 
   if (!modal.open) return null;
 
-  const cat = categories.find(c => c.id === category);
+  //const cat = categories.find(c => c.id === category);
 
   return (
     <div className={styles.overlay} ref={overlayRef} onClick={handleOverlayClick}>
