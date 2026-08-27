@@ -14,8 +14,13 @@
 }
 
 @keyframes fadein {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* ─── Modal box ──────────────────────────────────────────────────────────────── */
@@ -33,8 +38,15 @@
 }
 
 @keyframes slideup {
-  from { transform: translateY(14px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* ─── Header ─────────────────────────────────────────────────────────────────── */
@@ -57,6 +69,7 @@
   flex-shrink: 0;
   cursor: default;
 }
+
 .colorSwatchInner {
   width: 14px;
   height: 14px;
@@ -75,17 +88,34 @@
   padding: 2px 0 6px;
   transition: border-color var(--transition);
 }
-.titleInput::placeholder { color: var(--text-hint); }
-.titleInput:focus { border-bottom-color: var(--accent); }
+
+.titleInput::placeholder {
+  color: var(--text-hint);
+}
+
+.titleInput:focus {
+  border-bottom-color: var(--accent);
+}
+
 .titleInputError {
   border-bottom-color: #E85D75 !important;
   animation: shake 0.25s ease;
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25%       { transform: translateX(-4px); }
-  75%       { transform: translateX(4px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-4px);
+  }
+
+  75% {
+    transform: translateX(4px);
+  }
 }
 
 .closeBtn {
@@ -104,6 +134,7 @@
     background var(--transition),
     color var(--transition);
 }
+
 .closeBtn:hover {
   background: var(--surface2);
   color: var(--text);
@@ -138,7 +169,10 @@
   display: flex;
   gap: 10px;
 }
-.row2 .field { flex: 1; }
+
+.row2 .field {
+  flex: 1;
+}
 
 .input {
   width: 100%;
@@ -152,12 +186,55 @@
   transition: border-color var(--transition);
   font-family: var(--font-sans);
 }
-.input:focus { border-color: var(--accent); }
+
+.input:focus {
+  border-color: var(--accent);
+}
 
 /* Category select */
 .catSelectWrapper {
   position: relative;
 }
+
+.catSelectList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--surface2);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.catSelectOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.catSelectOptionHighlighted {
+  background: var(--surface2);
+}
+
+.catSelectOptionSelected {
+  font-weight: 600;
+}
+
+.catSelectWrapper {
+  position: relative;
+}
+
+/* Trigger dot (sits over the button) */
 .catSelectDot {
   position: absolute;
   left: 10px;
@@ -169,6 +246,15 @@
   pointer-events: none;
   z-index: 1;
 }
+
+/* Option dot (sits inline inside each list row) */
+.catSelectOptionDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .select {
   width: 100%;
   padding: 8px 11px;
@@ -183,7 +269,10 @@
   cursor: pointer;
   transition: border-color var(--transition);
 }
-.select:focus { border-color: var(--accent); }
+
+.select:focus {
+  border-color: var(--accent);
+}
 
 /* Textarea */
 .textarea {
@@ -200,8 +289,14 @@
   line-height: 1.55;
   transition: border-color var(--transition);
 }
-.textarea:focus { border-color: var(--accent); }
-.textarea::placeholder { color: var(--text-hint); }
+
+.textarea:focus {
+  border-color: var(--accent);
+}
+
+.textarea::placeholder {
+  color: var(--text-hint);
+}
 
 /* ─── Color picker ───────────────────────────────────────────────────────────── */
 .colorGrid {
@@ -221,7 +316,11 @@
     box-shadow var(--transition);
   flex-shrink: 0;
 }
-.colorDot:hover { transform: scale(1.12); }
+
+.colorDot:hover {
+  transform: scale(1.12);
+}
+
 .colorDotSelected {
   border-color: var(--text) !important;
   transform: scale(1.15) !important;
@@ -245,7 +344,10 @@
   background: var(--surface2);
   transition: border-color var(--transition);
 }
-.subtaskRow:focus-within { border-color: var(--accent); }
+
+.subtaskRow:focus-within {
+  border-color: var(--accent);
+}
 
 .subtaskCheck {
   width: 17px;
@@ -261,10 +363,12 @@
     background var(--transition),
     border-color var(--transition);
 }
+
 .subtaskCheckDone {
   background: var(--accent);
   border-color: var(--accent);
 }
+
 .checkmark {
   font-size: 10px;
   color: #fff;
@@ -280,6 +384,7 @@
   color: var(--text);
   font-family: var(--font-sans);
 }
+
 .subtaskInputDone {
   text-decoration: line-through;
   color: var(--text-hint);
@@ -292,8 +397,14 @@
   opacity: 0;
   transition: opacity var(--transition), color var(--transition);
 }
-.subtaskRow:hover .subtaskRemove { opacity: 1; }
-.subtaskRemove:hover { color: #E85D75; }
+
+.subtaskRow:hover .subtaskRemove {
+  opacity: 1;
+}
+
+.subtaskRemove:hover {
+  color: #E85D75;
+}
 
 .addSubtaskBtn {
   display: flex;
@@ -312,11 +423,13 @@
     color var(--transition),
     background var(--transition);
 }
+
 .addSubtaskBtn:hover {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-light);
 }
+
 .addSubtaskPlus {
   font-size: 16px;
   line-height: 1;
@@ -348,13 +461,21 @@
     border-color var(--transition),
     color var(--transition);
 }
-.completeToggle:hover { border-color: var(--accent); color: var(--accent); }
+
+.completeToggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .completeToggleDone {
   background: #E8F8EE !important;
   border-color: #52B788 !important;
   color: #1F7A3A !important;
 }
-.completeIcon { font-size: 14px; }
+
+.completeIcon {
+  font-size: 14px;
+}
 
 .syncToggle {
   display: flex;
@@ -365,6 +486,7 @@
   cursor: pointer;
   margin-left: auto;
 }
+
 .syncCheckbox {
   width: 15px;
   height: 15px;
@@ -400,6 +522,7 @@
     background var(--transition),
     border-color var(--transition);
 }
+
 .deleteBtn:hover {
   background: var(--red-light);
 }
@@ -416,6 +539,7 @@
     background var(--transition),
     color var(--transition);
 }
+
 .cancelBtn:hover {
   background: var(--surface2);
   color: var(--text);
@@ -431,10 +555,12 @@
   font-family: var(--font-sans);
   transition: opacity var(--transition), transform var(--transition);
 }
+
 .saveBtn:hover {
   opacity: 0.88;
   transform: translateY(-1px);
 }
+
 .saveBtn:active {
   transform: translateY(0);
 }

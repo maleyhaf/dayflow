@@ -7,9 +7,9 @@ import styles from './EventModal.module.css';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const EVENT_COLORS = [
-  '#E85D75', '#F4A261', '#E9C46A', '#52B788', '#2D5BE3',
-  '#A855F7', '#06B6D4', '#F43F5E', '#8B5CF6', '#10B981',
-  '#F59E0B', '#3B82F6', '#6366F1', '#EC4899', '#14B8A6',
+  '#2D5BE3', '#6366F1', '#8B5CF6', '#A855F7', '#EC4899',
+  '#F43F5E', '#E85D75', '#F4A261', '#F59E0B', '#E9C46A',
+  '#10B981', '#52B788', '#06B6D4', '#14B8A6', '#34A853',
 ];
 
 function uid() {
@@ -126,6 +126,137 @@ function SubtaskList({
   );
 }
 
+type Category = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+};
+
+interface CategorySelectProps {
+  categories: Category[];
+  value: string;
+  onChange: (categoryId: string) => void;
+}
+
+export function CategorySelect({ categories, value, onChange }: CategorySelectProps) {
+  const [open, setOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const selected = categories.find(c => c.id === value);
+  const selectedIndex = categories.findIndex(c => c.id === value);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (open && highlightedIndex >= 0 && listRef.current) {
+      const item = listRef.current.children[highlightedIndex] as HTMLElement | undefined;
+      item?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightedIndex, open]);
+
+  function openDropdown() {
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    setOpen(true);
+  }
+
+  function selectOption(id: string) {
+    onChange(id);
+    setOpen(false);
+  }
+
+  function handleTriggerKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openDropdown();
+    }
+  }
+
+  function handleListKeyDown(e: React.KeyboardEvent) {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(i => Math.min(i + 1, categories.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(i => Math.max(i - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0) selectOption(categories[highlightedIndex].id);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setOpen(false);
+        break;
+      case 'Tab':
+        setOpen(false);
+        break;
+    }
+  }
+
+  return (
+    <div className={styles.catSelectWrapper} ref={wrapperRef}>
+      {selected && (
+        <span className={styles.catSelectDot} style={{ background: selected.color }} />
+      )}
+
+      <button
+        type="button"
+        className={styles.select}
+        style={{ paddingLeft: selected ? 28 : 10, textAlign: 'left', width: '100%' }}
+        onClick={() => (open ? setOpen(false) : openDropdown())}
+        onKeyDown={handleTriggerKeyDown}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {selected ? `${selected.icon} ${selected.name}` : 'Select category'}
+      </button>
+
+      {open && (
+        <ul
+          className={styles.catSelectList}
+          role="listbox"
+          ref={listRef}
+          tabIndex={-1}
+          onKeyDown={handleListKeyDown}
+        >
+          {categories.map((c, i) => (
+            <li
+              key={c.id}
+              role="option"
+              aria-selected={c.id === value}
+              className={[
+                styles.catSelectOption,
+                i === highlightedIndex ? styles.catSelectOptionHighlighted : '',
+                c.id === value ? styles.catSelectOptionSelected : '',
+              ].filter(Boolean).join(' ')}
+              onMouseEnter={() => setHighlightedIndex(i)}
+              onClick={() => selectOption(c.id)}
+            >
+              <span className={styles.catSelectOptionDot} style={{ background: c.color }} />
+              <span>{c.icon} {c.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 export default function EventModal() {
@@ -171,7 +302,7 @@ export default function EventModal() {
       setDate(modal.defaultDate ?? fmtDate(new Date()));
       setStartTime(modal.defaultTime ?? '09:00');
       setEndTime(bumpHour(modal.defaultTime ?? '09:00'));
-      setColor(EVENT_COLORS[Math.floor(Math.random() * EVENT_COLORS.length)]);
+      setColor(categories[0]?.color ?? EVENT_COLORS[4]);
       setCategory(categories[0]?.id ?? '');
       setDetails('');
       setCompleted(false);
@@ -317,26 +448,14 @@ export default function EventModal() {
           {/* Row: category */}
           <div className={styles.field}>
             <label className={styles.label}>Category</label>
-            <div className={styles.catSelectWrapper}>
-              {cat && (
-                <span
-                  className={styles.catSelectDot}
-                  style={{ background: cat.color }}
-                />
-              )}
-              <select
-                className={styles.select}
-                value={category}
-                onChange={e => setCategory(e.target.value)}
-                style={{ paddingLeft: cat ? 28 : 10 }}
-              >
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.icon} {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CategorySelect
+              categories={categories}
+              value={category}
+              onChange={id => {
+                setCategory(id);
+                setColor(categories.find(c => c.id === id)?.color ?? EVENT_COLORS[4]);
+              }}
+            />
           </div>
 
           {/* Color picker */}

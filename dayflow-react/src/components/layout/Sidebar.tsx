@@ -99,7 +99,8 @@ function CategoryList() {
   const { state, dispatch } = useApp();
 
   // modal for category creation
-  const [catModalOpen, setCatModalOpen] = useState(false);
+  //const [catModalOpen, setCatModalOpen] = useState(false);
+
 
   const handleFilter = (id: string) => {
     dispatch({
@@ -108,23 +109,7 @@ function CategoryList() {
     });
   };
 
-  /*
-  OLD VERSION
-  const handleAdd = () => {
-    // get user input category name, icon and color
-    const name = window.prompt('Category name:');
-    if (!name?.trim()) return;
-    const colors = ['#8B5CF6', '#F43F5E', '#06B6D4', '#F59E0B', '#10B981'];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const newCat: Category = {
-      id: 'cat_' + Date.now(),
-      name: name.trim(),
-      color,
-      icon: '🏷️',
-    };
-    dispatch({ type: 'ADD_CATEGORY', payload: newCat });
-  };
-  */
+
 
   return (
     <div className={styles.section}>
@@ -136,7 +121,7 @@ function CategoryList() {
           <button
             key={cat.id}
             className={`${styles.catBtn} ${active ? styles.catBtnActive : ''}`}
-            onClick={() => handleFilter(cat.id)}
+            onClick={() => dispatch({ type: 'OPEN_CATEGORY_MODAL', payload: { mode: 'edit', editingCategory: cat } })}
           >
             <span
               className={styles.catDot}
@@ -148,16 +133,26 @@ function CategoryList() {
           </button>
         );
       })}
-      <button className={styles.addCatBtn} onClick={() => setCatModalOpen(true)}>
+      <button className={styles.addCatBtn} onClick={() => dispatch({ type: 'OPEN_CATEGORY_MODAL', payload: { mode: 'create' } })}>
         + Add category
       </button>
 
-      {catModalOpen && (
+      {state.categoryModal.open && (
         <CategoryModal
-          onClose={() => setCatModalOpen(false)}
+          onClose={() => dispatch({ type: 'CLOSE_CATEGORY_MODAL' })}
           onSave={(cat) => {
-            dispatch({ type: 'ADD_CATEGORY', payload: cat });
-            setCatModalOpen(false);
+            if (state.categoryModal.mode === 'edit' && state.categoryModal.editingCategory) {
+              dispatch({ type: 'EDIT_CATEGORY', payload: cat });
+            } else {
+              dispatch({ type: 'ADD_CATEGORY', payload: cat });
+            }
+            dispatch({ type: 'CLOSE_CATEGORY_MODAL' });
+          }}
+          onDelete={() => {
+            if (state.categoryModal.editingCategory) {
+              dispatch({ type: 'DELETE_CATEGORY', payload: state.categoryModal.editingCategory.id });
+            }
+            dispatch({ type: 'CLOSE_CATEGORY_MODAL' });
           }}
         />
       )}

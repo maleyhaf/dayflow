@@ -11,6 +11,7 @@ import {
   Category,
   ViewMode,
   EventModalState,
+  CategoryModalState,
   SettingsModalState,
 } from '../types';
 import { applyThemeValue } from './theme';
@@ -76,6 +77,7 @@ interface AppState {
   activeFilter: string | null; // category id or null
   selectedEventId: string | null;
   modal: EventModalState;
+  categoryModal: CategoryModalState;
   syncModalOpen: boolean;
   theme: string;
   isDark: boolean;
@@ -94,6 +96,10 @@ type Action =
   | { type: 'UPDATE_EVENT'; payload: CalendarEvent }
   | { type: 'DELETE_EVENT'; payload: string }
   | { type: 'ADD_CATEGORY'; payload: Category }
+  | { type: 'EDIT_CATEGORY'; payload: Category }
+  | { type: 'DELETE_CATEGORY'; payload: string }
+  | { type: 'OPEN_CATEGORY_MODAL'; payload: Omit<CategoryModalState, 'open'> }
+  | { type: 'CLOSE_CATEGORY_MODAL' }
   | { type: 'OPEN_MODAL'; payload: Omit<EventModalState, 'open'> }
   | { type: 'CLOSE_MODAL' }
   | { type: 'SET_SYNC_MODAL'; payload: boolean }
@@ -132,6 +138,32 @@ function reducer(state: AppState, action: Action): AppState {
       };
     case 'ADD_CATEGORY':
       return { ...state, categories: [...state.categories, action.payload] };
+    case 'EDIT_CATEGORY':
+      return {
+        ...state,
+        categories: state.categories.map(c =>
+          c.id === action.payload.id ? action.payload : c
+        ),
+      };
+    case 'DELETE_CATEGORY':
+      return {
+        ...state,
+        categories: state.categories.filter(c => c.id !== action.payload),
+        // delete the events in that category
+        events: state.events.map(e =>
+          e.category === action.payload ? null : e
+        ).filter(Boolean) as CalendarEvent[],
+        // clear filter if it was the deleted category
+        activeFilter: state.activeFilter === action.payload ? null : state.activeFilter,
+        // clear selected event if it was in the deleted category
+        selectedEventId: state.selectedEventId && state.events.find(e => e.id === state.selectedEventId)?.category === action.payload
+          ? null
+          : state.selectedEventId,
+      };
+    case 'OPEN_CATEGORY_MODAL':
+      return { ...state, categoryModal: { ...action.payload, open: true } };
+    case 'CLOSE_CATEGORY_MODAL':
+      return { ...state, categoryModal: { open: false, mode: 'create' } };
     case 'OPEN_MODAL':
       return { ...state, modal: { ...action.payload, open: true } };
     case 'CLOSE_MODAL':
@@ -165,6 +197,7 @@ interface AppContextValue {
   // Convenience helpers
   openNewEvent: (date?: string, time?: string) => void;
   openEditEvent: (event: CalendarEvent) => void;
+
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -194,6 +227,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     currentDate:     fmt(today),
     activeFilter:    null,
     selectedEventId: null,
+    categoryModal:   { open: false, mode: 'create' },
     modal:           { open: false, mode: 'create' },
     syncModalOpen:   false,
     theme:           loadFromStorage('df_theme', 'default'),

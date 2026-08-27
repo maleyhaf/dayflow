@@ -28,6 +28,13 @@ export interface Category {
   icon: string;        // emoji
 }
 
+export type CategoryMode = 'create' | 'edit';
+export interface CategoryModalState {
+  open: boolean;
+  mode: CategoryMode;
+  editingCategory?: Category;
+}
+
 // ─── View & UI Types ───────────────────────────────────────────────────────────
 
 export type ViewMode = 'week' | 'month';

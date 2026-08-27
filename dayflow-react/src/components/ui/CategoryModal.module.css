@@ -184,6 +184,12 @@
   flex-shrink: 0;
 }
 
+.footerRight {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .cancelBtn {
   padding: 8px 18px;
   border-radius: 20px;
@@ -211,3 +217,19 @@
 }
 .saveBtn:hover { opacity: 0.88; transform: translateY(-1px); }
 .saveBtn:active { transform: translateY(0); }
+
+.deleteBtn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid #FFB3B3;
+  background: transparent;
+  color: var(--red);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+}
+.deleteBtn:hover {
+  background: var(--red-light);
+}

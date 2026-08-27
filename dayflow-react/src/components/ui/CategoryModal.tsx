@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Category } from '../../types';
+import { useApp } from '../../context/AppContext';
 import styles from './CategoryModal.module.css';
+
 
 const COLORS = [
   '#2D5BE3', '#6366F1', '#8B5CF6', '#A855F7', '#EC4899',
@@ -17,16 +19,37 @@ const ICONS = [
 interface Props {
   onClose: () => void;
   onSave: (cat: Category) => void;
+  onDelete?: (catId: string) => void;
 }
 
-export default function CategoryModal({ onClose, onSave }: Props) {
-  const [name, setName]     = useState('');
-  const [color, setColor]   = useState(COLORS[0]);
-  const [icon, setIcon]     = useState(ICONS[0]);
+export default function CategoryModal({ onClose, onSave, onDelete }: Props) {
+  // figure out if user is editing
+  const { state } = useApp();
+  const { open, mode, editingCategory } = state.categoryModal;
+  const isEdit = mode === 'edit' && !!editingCategory;
+  const existing = isEdit ? editingCategory : undefined;
+
+  const [name, setName] = useState('');
+  const [color, setColor] = useState(COLORS[0]);
+  const [icon, setIcon] = useState(ICONS[0]);
   const [nameError, setNameError] = useState(false);
 
-  const nameRef    = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // populate fields if editing
+  useEffect(() => {
+    if (!open) return;
+    if (isEdit && existing) {
+      setName(existing.name);
+      setColor(existing.color);
+      setIcon(existing.icon);
+    } else {
+      setName('');
+      setColor(COLORS[0]);
+      setIcon(ICONS[0]);
+    }
+  }, [open, isEdit, existing]);
 
   useEffect(() => {
     setTimeout(() => nameRef.current?.focus(), 60);
@@ -50,13 +73,22 @@ export default function CategoryModal({ onClose, onSave }: Props) {
       nameRef.current?.focus();
       return;
     }
-    onSave({
-      id:    'cat_' + Date.now(),
-      name:  name.trim(),
+
+    const ev: Category = {
+      id: existing?.id ?? ('ev_' + Math.random().toString(36).slice(2, 9)),
+      name: name.trim(),
       color,
       icon,
-    });
-  };
+    };
+    onSave(ev);
+  }
+
+  const handleDelete = () => {
+    if (!existing) return;
+    if (window.confirm('Delete this category? This will remove all events in this category.')) {
+      onDelete?.(existing.id);
+    }
+  }
 
   return (
     <div className={styles.overlay} ref={overlayRef} onClick={handleOverlayClick}>
@@ -67,7 +99,9 @@ export default function CategoryModal({ onClose, onSave }: Props) {
           <span className={styles.preview} style={{ background: color }}>
             {icon}
           </span>
-          <h2 className={styles.title}>New category</h2>
+          <h2 className={styles.title}>
+            {isEdit ? 'Edit category' : 'New category'}
+          </h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
         </div>
 
@@ -125,14 +159,26 @@ export default function CategoryModal({ onClose, onSave }: Props) {
 
         {/* Footer */}
         <div className={styles.footer}>
-          <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
-          <button
-            className={styles.saveBtn}
-            style={{ background: color }}
-            onClick={handleSave}
-          >
-            Create category
-          </button>
+          {isEdit && (
+            <button
+              type="button"
+              className={styles.deleteBtn}
+              onClick={handleDelete}
+            >
+              Delete
+            </button>
+          )}
+          <div className={styles.footerRight}>
+
+            <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
+            <button
+              className={styles.saveBtn}
+              style={{ background: color }}
+              onClick={handleSave}
+            >
+              {isEdit ? 'Save changes' : 'Create category'}
+            </button>
+          </div>
         </div>
 
       </div>
