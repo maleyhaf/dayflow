@@ -102,13 +102,13 @@ function CategoryList() {
   //const [catModalOpen, setCatModalOpen] = useState(false);
 
 
-  const handleFilter = (id: string) => {
+  /*const handleFilter = (id: string) => {
     dispatch({
       type: 'SET_FILTER',
       payload: state.activeFilter === id ? null : id,
     });
   };
-
+  */
 
 
   return (
