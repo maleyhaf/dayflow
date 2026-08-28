@@ -11,7 +11,7 @@ import styles from './WeekView.module.css';
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export default function WeekView() {
-  const { state, dispatch, openNewEvent, openEditEvent } = useApp();
+  const { state, dispatch, openNewEvent } = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchor    = parseDate(state.currentDate);
   const days      = getWeekDays(anchor);
@@ -31,6 +31,7 @@ export default function WeekView() {
     : state.events;
 
   const handleSlotClick = (dateStr: string, hour: number) => {
+    dispatch({ type: 'SELECT_EVENT', payload: null });
     openNewEvent(dateStr, `${String(hour).padStart(2, '0')}:00`);
   };
 
@@ -39,7 +40,7 @@ export default function WeekView() {
     const ev = state.events.find(ev => ev.id === eventId);
     if (!ev) return;
     dispatch({ type: 'SELECT_EVENT', payload: eventId });
-    openEditEvent(ev);
+    //openEditEvent(ev);
   };
 
   return (

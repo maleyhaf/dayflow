@@ -4,6 +4,7 @@ import TopNav from './components/layout/TopNav';
 import Sidebar from './components/layout/Sidebar';
 import CalendarView from './components/calendar/CalendarView';
 import EventModal from './components/events/EventModal';
+import DetailPanel from './components/ui/DetailPanel';
 import { fmtDate, addDays, addMonths } from './utils/dateUtils';
 import './styles/globals.css';
 import styles from './App.module.css';
@@ -62,11 +63,7 @@ function AppShell() {
           <CalendarView />
         </main>
         {state.selectedEventId && (
-          <aside className={styles.detail}>
-            <div style={{ padding: 20, color: 'var(--text-muted)', fontSize: 13 }}>
-              Detail panel — next step
-            </div>
-          </aside>
+          <DetailPanel />
         )}
       </div>
 

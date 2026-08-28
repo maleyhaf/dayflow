@@ -1,0 +1,355 @@
+/* ─── Panel shell ────────────────────────────────────────────────────────────── */
+.detail {
+  width: var(--detail-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slidein 0.18s ease;
+}
+
+@keyframes slidein {
+  from { transform: translateX(12px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.completedMark {
+  position: absolute;
+  right: 16px;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.colorSwatch {
+  width: 32px;
+  height: 32px;
+  transform: translateY(-6px);
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.colorSwatchInner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+}
+
+.headerText {
+  flex: 1;
+  padding-top: 6px;
+  min-width: 0;
+}
+
+.eventTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.categoryBadge {
+  flex: 0 0 auto;
+  padding: 0px 8px;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.closeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-hint);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition);
+}
+.closeBtn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+/* ─── Body ───────────────────────────────────────────────────────────────────── */
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notes {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition);
+  min-height: 70px;
+}
+.notes:focus {
+  border-color: var(--accent);
+}
+.notes::placeholder {
+  color: var(--text-hint);
+}
+
+/* ─── Section blocks ─────────────────────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-hint);
+}
+
+/* ─── Meta row (date / time) ─────────────────────────────────────────────────── */
+.metaRow {
+  display: flex;
+  gap: 8px;
+}
+
+.metaChip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  flex: 1;
+  white-space: nowrap;
+}
+
+.metaChipIcon {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ─── Details / notes ────────────────────────────────────────────────────────── */
+.notes {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  min-height: 40px;
+}
+
+.notesEmpty {
+  color: var(--text-hint);
+  font-style: italic;
+}
+
+/* ─── Subtasks ───────────────────────────────────────────────────────────────── */
+.subtaskList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.subtaskRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  transition: border-color var(--transition);
+}
+
+.subtaskCheck {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.subtaskCheckDone {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkmark {
+  font-size: 10px;
+  color: #fff;
+  line-height: 1;
+}
+
+.subtaskText {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.subtaskTextDone {
+  text-decoration: line-through;
+  color: var(--text-hint);
+}
+
+.subtaskProgress {
+  font-size: 11px;
+  color: var(--text-hint);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ─── Completed banner ───────────────────────────────────────────────────────── */
+.completedBanner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: #E8F8EE;
+  border: 1px solid #A8DFB8;
+  color: #1F7A3A;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────────────── */
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-hint);
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 32px;
+  opacity: 0.3;
+  margin-bottom: 4px;
+}
+
+.emptyText {
+  font-size: 13px;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.completeBtn {
+  padding: 9px 23px;
+  flex: 0 0 auto;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition);
+}
+.completeBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.completeBtnDone {
+  background: #E8F8EE;
+  border-color: #52B788;
+  color: #1F7A3A;
+}
+.completeBtnDone:hover {
+  background: #D4F0E0;
+  border-color: #3D9E68;
+  color: #1F7A3A;
+}
+
+.editBtn {
+  flex: 0 0 auto;
+  padding: 8px 23px;
+  border-radius: 20px;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  transition: opacity var(--transition), transform var(--transition);
+}
+.editBtn:hover  { opacity: 0.88; transform: translateY(-1px); }
+.editBtn:active { transform: translateY(0); }
+
+.closeFooterBtn {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  transition: background var(--transition), color var(--transition);
+}
+.closeFooterBtn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}

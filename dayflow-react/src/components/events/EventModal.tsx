@@ -49,7 +49,7 @@ function ColorPicker({
   );
 }
 
-function SubtaskList({
+export function SubtaskList({
   subtasks,
   onChange,
 }: {
