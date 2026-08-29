@@ -248,6 +248,7 @@ export function useDragEvent(): UseDragEventReturn {
           type: 'UPDATE_EVENT',
           payload: { ...ev, date: dateStr, start: newStart, end: newEnd },
         });
+        dispatch({ type: 'SET_DRAGGING', payload: null });
       },
     };
   }, [dispatch]);
@@ -290,6 +291,7 @@ export function useDragEvent(): UseDragEventReturn {
         type: 'UPDATE_EVENT',
         payload: { ...ev, date: dateStr },
       });
+      dispatch({ type: 'SET_DRAGGING', payload: null });
     },
   }), [dispatch]);
 
