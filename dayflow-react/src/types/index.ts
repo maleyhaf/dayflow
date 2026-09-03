@@ -11,11 +11,22 @@ export interface CalendarEvent {
   title: string;
   date: string;        // "YYYY-MM-DD"
   start: string;       // "HH:MM"
-  end: string;         // "HH:MM"
+  end: string ;         // "HH:MM"
   color: string;       // hex
   category: string;    // category id
   details: string;
   completed: boolean;
+  subtasks: Subtask[];
+  gcalId: string | null;
+  gcalSync: boolean;
+}
+
+// for the daily notes
+export interface DailyNote {
+  id: string;
+  title: string;
+  date: string;        // "YYYY-MM-DD"
+  details: string;
   subtasks: Subtask[];
   gcalId: string | null;
   gcalSync: boolean;

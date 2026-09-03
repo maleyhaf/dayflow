@@ -6,9 +6,9 @@ import EventChip from './EventChip';
 import styles from './MonthView.module.css';
 
 export default function MonthView() {
-  const { state, dispatch, openNewEvent } = useApp();
+  const { state, dispatch, openNewEvent, openDailyNote } = useApp();
   const anchor = parseDate(state.currentDate);
-  const cells  = getMonthCells(anchor.getFullYear(), anchor.getMonth());
+  const cells = getMonthCells(anchor.getFullYear(), anchor.getMonth());
 
   const { getChipDragProps, getMonthCellDropProps } = useDragEvent();
 
@@ -24,10 +24,13 @@ export default function MonthView() {
     //openEditEvent(ev);
   };
 
-  const handleDayNumClick = (e: React.MouseEvent, dateStr: string) => {
+  const handleDayNumClick = (e: React.MouseEvent, dateStr: string, isToday: boolean) => {
     e.stopPropagation();
     dispatch({ type: 'SET_DATE', payload: dateStr });
     dispatch({ type: 'SET_VIEW', payload: 'week' });
+
+    // also open the daily note for that date
+    openDailyNote(dateStr, isToday);
   };
 
   return (
@@ -59,7 +62,7 @@ export default function MonthView() {
             >
               <span
                 className={`${styles.dateNum} ${isToday ? styles.dateNumToday : ''}`}
-                onClick={e => handleDayNumClick(e, dateStr)}
+                onClick={e => handleDayNumClick(e, dateStr, isToday)}
               >
                 {date.getDate()}
               </span>

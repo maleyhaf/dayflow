@@ -40,7 +40,7 @@
 }
 
 .dayNum {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 300;
   color: var(--text-muted);
   line-height: 1;
@@ -50,6 +50,14 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+}
+.dayNum:hover {
+  background: var(--accent-light);
+  color: var(--text);
+}
+.dayNumSelected {
+  background: var(--accent-light);
+  color: var(--text);
 }
 
 .dayNumToday {

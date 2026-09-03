@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './DetailPanel.module.css';
 import { useApp } from '../../context/AppContext';
-import { CalendarEvent, Category } from '../../types';
+import { CalendarEvent, Category, DailyNote, Subtask } from '../../types';
 import { fmtDisplayTime, MONTH_SHORT } from '../../utils/dateUtils';
 import { SubtaskList } from '../events/EventModal';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -29,14 +29,9 @@ function formatDate(dateStr: string): string {
   return `${MONTH_SHORT[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
+// for selected event, show details, notes, subtasks, and allow editing
+function EventDetailPanel({ state, dispatch, openEditEvent, selectedEvent }: { state: any; dispatch: any; openEditEvent: any; selectedEvent: CalendarEvent }) {
 
-
-// ─── Main panel ───────────────────────────────────────────────────────────────
-
-export default function DetailPanel() {
-  const { state, dispatch, openEditEvent } = useApp();
-
-  const selectedEvent = state.events.find(e => e.id === state.selectedEventId);
   const { categories } = state;
 
   const close = () => dispatch({ type: 'SELECT_EVENT', payload: null });
@@ -57,17 +52,6 @@ export default function DetailPanel() {
     });
   };
 
-  // ── Empty state ──────────────────────────────────────────────────────────────
-  if (!selectedEvent) {
-    return (
-      <aside className={styles.detail}>
-        <div className={styles.empty}>
-          <div className={styles.emptyIcon}>🗓</div>
-          <div className={styles.emptyText}>Select an event to see details</div>
-        </div>
-      </aside>
-    );
-  }
 
   const cat = getCategoryInfo(selectedEvent, categories);
   //const doneCount = selectedEvent.subtasks.filter(s => s.done).length;
@@ -94,7 +78,7 @@ export default function DetailPanel() {
         </div>
 
         <div className={styles.headerText}>
-          
+
           <div className={styles.eventTitle} style={{ textDecoration: selectedEvent.completed ? 'line-through' : 'none' }}>
             {selectedEvent.title}
             {selectedEvent.completed && <span className={styles.completedMark} style={{ color: selectedEvent.color }}>
@@ -167,12 +151,12 @@ export default function DetailPanel() {
           </div>
         }
 
-         
-        
+
+
 
       </div>
 
-        
+
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <div className={styles.footer}>
@@ -197,8 +181,8 @@ export default function DetailPanel() {
           Edit
         </button>
 
-        
-       
+
+
         <button className={styles.closeFooterBtn} onClick={close}>
           ✕
         </button>
@@ -206,4 +190,113 @@ export default function DetailPanel() {
 
     </aside>
   );
+
+}
+
+// for selected daily note, show details, subtasks, and allow editing
+function DailyNoteDetailPanel({ dailyNote, isToday }: { dailyNote: DailyNote; isToday: boolean | null }) {
+  const { dispatch } = useApp();
+
+  const [notes, setNotes] = useState(dailyNote.details ?? '');
+  const [subtasks, setSubtasks] = useState<Subtask[]>(dailyNote.subtasks.map(s => ({ ...s })));
+  // Sync when the selected note changes
+  useEffect(() => {
+    setNotes(dailyNote.details ?? '');
+    setSubtasks(dailyNote.subtasks.map(s => ({ ...s })));
+  }, [dailyNote.id, dailyNote.details, dailyNote.subtasks]);
+
+  const close = () => dispatch({ type: 'SELECT_DAILY_NOTE', payload: null });
+
+  const saveChanges = (updatedNotes: string, updatedSubtasks: typeof subtasks) => {
+    dispatch({
+      type: 'UPSERT_DAILY_NOTE',
+      payload: { ...dailyNote, details: updatedNotes, subtasks: updatedSubtasks },
+    });
+  };
+
+  return (
+    <aside className={styles.detail}>
+
+      {/* Header */}
+      <div className={styles.header} style={{ borderBottom: '3px solid var(--accent)' }}>
+        <div className={styles.headerText}>
+          <div className={styles.eventTitle}>📝 {formatDate(dailyNote.date)}</div>
+          <div className={styles.categoryBadge}>
+            {isToday ? 'Today - Daily Notes' : 'Daily Notes'}
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className={styles.body}>
+
+        <div className={styles.section}>
+          <div className={styles.label}>Notes</div>
+          <textarea
+            className={styles.notes}
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            onBlur={() => saveChanges(notes, subtasks)}
+            placeholder="Write anything about today…"
+            rows={4}
+          />
+        </div>
+
+        <div className={styles.section}>
+          <div className={styles.label}>
+            Tasks
+            {subtasks.length > 0 && (
+              <span className={styles.subtaskProgress}>
+                {' '}{subtasks.filter(s => s.done).length}/{subtasks.length}
+              </span>
+            )}
+          </div>
+          <SubtaskList
+            subtasks={subtasks}
+            onChange={updated => {
+              setSubtasks(updated);
+              saveChanges(notes, updated);
+            }}
+          />
+        </div>
+
+      </div>
+
+      {/* Footer — just close, no edit button */}
+      <div className={styles.footer}>
+        <button className={styles.closeFooterBtn} style={{ marginLeft: 'auto' }} onClick={close}>
+          ✕
+        </button>
+      </div>
+
+    </aside>
+  );
+}
+
+
+// ─── Main component ───────────────────────────────────────────────────────────────
+
+export default function DetailPanel() {
+  const { state, dispatch, openEditEvent } = useApp();
+
+  const selectedEvent = state.events.find(e => e.id === state.selectedEventId);
+  const selectedDailyNote = selectedEvent ? null : state.dailyNotes.find(dn => dn.date === state.selectedDate);
+
+  if (selectedEvent) {
+    return <EventDetailPanel state={state} dispatch={dispatch} openEditEvent={openEditEvent} selectedEvent={selectedEvent} />;
+  } else if (selectedDailyNote) {
+    const isToday = state.selectedDateIsToday;
+    return <DailyNoteDetailPanel dailyNote={selectedDailyNote} isToday={isToday} />;
+  } else {
+    return (
+      <aside className={styles.detail}>
+        <div className={styles.empty}>
+          <div className={styles.emptyIcon}>🗓</div>
+          <div className={styles.emptyText}>Select an event or daily note to see details</div>
+        </div>
+      </aside>
+    );
+  }
+
+
 }

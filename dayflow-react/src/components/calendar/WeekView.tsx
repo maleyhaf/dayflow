@@ -11,11 +11,11 @@ import styles from './WeekView.module.css';
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export default function WeekView() {
-  const { state, dispatch, openNewEvent } = useApp();
+  const { state, dispatch, openNewEvent, openDailyNote} = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const anchor    = parseDate(state.currentDate);
-  const days      = getWeekDays(anchor);
-  const todayStr  = fmtDate(new Date());
+  const anchor = parseDate(state.currentDate);
+  const days = getWeekDays(anchor);
+  const todayStr = fmtDate(new Date());
 
   const { getChipDragProps, getWeekColDropProps } = useDragEvent();
 
@@ -39,8 +39,16 @@ export default function WeekView() {
     e.stopPropagation();
     const ev = state.events.find(ev => ev.id === eventId);
     if (!ev) return;
+    // remove selected date if any, since we're now selecting an event
+    dispatch({ type: 'SELECT_DAILY_NOTE', payload: null });
     dispatch({ type: 'SELECT_EVENT', payload: eventId });
     //openEditEvent(ev);
+  };
+
+  // handle the date click to open the associated daily note
+  const handleDateClick = (dateStr: string, today: boolean) => {
+   // use the helper
+    openDailyNote(dateStr, today);
   };
 
   return (
@@ -50,13 +58,14 @@ export default function WeekView() {
         <div className={styles.gutterHeader} />
         {days.map(day => {
           const dateStr = fmtDate(day);
-          const today   = dateStr === todayStr;
+          const today = dateStr === todayStr;
+          const selected = dateStr === state.selectedDate;
           return (
             <div key={dateStr} className={styles.dayHeader}>
               <span className={styles.dayName}>{DAY_SHORT[day.getDay()]}</span>
-              <span className={`${styles.dayNum} ${today ? styles.dayNumToday : ''}`}>
-                {day.getDate()}
-              </span>
+              <button className={`${styles.dayNum} ${today ? styles.dayNumToday : ''} ${selected ? styles.dayNumSelected : ''}`} onClick={() => handleDateClick(dateStr, today)} >
+                  {day.getDate()}
+              </button>
             </div>
           );
         })}
@@ -114,7 +123,7 @@ function DayColumn({
   onSlotClick, onChipClick,
 }: DayColumnProps) {
   const { state } = useApp(); // for event categories 
-  const colRef  = useRef<HTMLDivElement>(null);
+  const colRef = useRef<HTMLDivElement>(null);
   const dateStr = fmtDate(day);
 
   // We pass scrollRef so the drop handler can subtract scroll offset
@@ -148,7 +157,7 @@ function DayColumn({
           dragProps={getChipDragProps(ev)}
           categoryIcon={state.categories.find(c => c.id === ev.category)?.icon}
           style={{
-            top:    timeToY(ev.start),
+            top: timeToY(ev.start),
             height: timeDurationPx(ev.start, ev.end || ev.start),
           }}
           onClick={e => onChipClick(e, ev.id)}

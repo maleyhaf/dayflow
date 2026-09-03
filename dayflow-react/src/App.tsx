@@ -10,7 +10,7 @@ import './styles/globals.css';
 import styles from './App.module.css';
 
 function AppShell() {
-  const { state, dispatch, openNewEvent } = useApp();
+  const { state, dispatch, openNewEvent, openDailyNote } = useApp();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -20,13 +20,19 @@ function AppShell() {
         case 'n': case 'N':
           openNewEvent();
           break;
-        case 't': case 'T':
-          dispatch({ type: 'SET_DATE', payload: fmtDate(new Date()) });
+        case 't': case 'T': {
+          const todayStr = fmtDate(new Date());
+          dispatch({ type: 'SET_DATE', payload: todayStr });
+          
+          // use the convient helper from app context to open the daily note for today
+          openDailyNote(todayStr, true);
           break;
+        }
         case 'Escape':
           dispatch({ type: 'CLOSE_MODAL' });
           dispatch({ type: 'SET_SYNC_MODAL', payload: false });
           dispatch({ type: 'SELECT_EVENT', payload: null });
+          dispatch({ type: 'SELECT_DAILY_NOTE', payload: null });
           break;
         case 'ArrowLeft': {
           const d = new Date(state.currentDate);
@@ -52,7 +58,7 @@ function AppShell() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [state.currentDate, state.viewMode, dispatch, openNewEvent]);
+  }, [state.currentDate, state.viewMode, dispatch, openNewEvent, openDailyNote, state.dailyNotes]);
 
   return (
     <div className={styles.app}>
@@ -62,9 +68,11 @@ function AppShell() {
         <main className={styles.main}>
           <CalendarView />
         </main>
-        {state.selectedEventId && (
+        {state.selectedEventId ? (
           <DetailPanel />
-        )}
+        ) : state.selectedDate? (
+          <DetailPanel />
+        ) : null}
       </div>
 
       {/* Modal renders above everything */}
