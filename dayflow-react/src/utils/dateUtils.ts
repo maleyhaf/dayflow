@@ -1,3 +1,5 @@
+import { CalendarEvent } from '../types';
+
 // ─── Formatting ───────────────────────────────────────────────────────────────
 
 // Local time function corrected
@@ -50,6 +52,122 @@ export function getWeekStart(d: Date): Date {
 export function getWeekDays(anchorDate: Date): Date[] {
   const start = getWeekStart(anchorDate);
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+}
+
+// Recurrence functions
+
+// "ev_abc_2026-01-13" -> { baseId: "ev_abc", date: "2026-01-13" }; plain ids -> date null
+export function splitInstanceId(id: string): { baseId: string; date: string | null } {
+  const m = id.match(/^(.*)_(\d{4}-\d{2}-\d{2})$/);
+  return m ? { baseId: m[1], date: m[2] } : { baseId: id, date: null };
+}
+
+// whole days from a to b (both "YYYY-MM-DD"), DST-safe
+export function diffDays(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map(Number);
+  const [by, bm, bd] = b.split('-').map(Number);
+  return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86400000);
+}
+
+// Build one occurrence of a recurring event, applying that occurrence's own overrides
+function buildInstance(event: CalendarEvent, dateStr: string): CalendarEvent {
+  const instanceId = `${event.id}_${dateStr}`;
+  const override = event.recurrenceOverrides?.find(o => o.instanceId === instanceId);
+  return {
+    ...event,
+    ...(override?.fullOverride ?? {}),
+    id: instanceId,
+    date: override?.fullOverride?.date ?? dateStr,
+    details: override?.details ?? event.details,
+    subtasks: override?.subtasks
+      ? override.subtasks
+      : event.subtasks.map(s => ({ ...s, done: false })),
+    completed: override?.completed ?? false,
+  };
+}
+
+// Find an event OR a single occurrence of a recurring event by id
+export function resolveEventById(events: CalendarEvent[], id: string | null): CalendarEvent | undefined {
+  if (!id) return undefined;
+  const direct = events.find(e => e.id === id);
+  if (direct) return direct;
+  const { baseId, date } = splitInstanceId(id);
+  if (!date) return undefined;
+  const parent = events.find(e => e.id === baseId);
+  if (!parent || !parent.recurrence) return undefined;
+  if (parent.recurrenceOverrides?.find(o => o.instanceId === id)?.excluded) return undefined;
+  return buildInstance(parent, date);
+}
+
+export function generateRecurringInstances(
+  event: CalendarEvent,
+  rangeStart: string,
+  rangeEnd: string,
+): CalendarEvent[] {
+  if (!event.recurrence) return [event];
+
+  const { frequency, interval, endDate, endsAfter, daysOfWeek } = event.recurrence;
+  const instances: CalendarEvent[] = [];
+  let current = parseDate(event.date);
+  const rangeEndDate = parseDate(rangeEnd);
+  const endsOnDate = endDate ? parseDate(endDate) : null;
+  const overrides = event.recurrenceOverrides ?? [];
+
+  // Scan far enough to find occurrences that were moved INTO this range from a later date
+  let scanEnd = rangeEndDate;
+  overrides.forEach(o => {
+    if (o.fullOverride?.date) {
+      const orig = parseDate(o.date);
+      if (orig > scanEnd) scanEnd = orig;
+    }
+  });
+
+  let occurrences = 0; // every valid slot in the series (incl. deleted/moved ones)
+  let iterations = 0;
+
+  // Safety cap
+  while (current <= scanEnd && iterations < 500) {
+    if (endsOnDate && current > endsOnDate) break;
+    if (endsAfter !== undefined && occurrences >= endsAfter) break;
+
+    // For weekly with specific days, check if current day is in the allowed set
+    const dayMatches = !daysOfWeek || daysOfWeek.includes(current.getDay());
+
+    if (dayMatches) {
+      occurrences++;
+      const dateStr = fmtDate(current);
+      const override = overrides.find(o => o.instanceId === `${event.id}_${dateStr}`);
+      if (!override?.excluded) {
+        const inst = buildInstance(event, dateStr);
+        // filter on the EFFECTIVE date (an occurrence may have been moved)
+        if (inst.date >= rangeStart && inst.date <= rangeEnd) instances.push(inst);
+      }
+    }
+
+    // Advance by interval
+    const next = new Date(current);
+    switch (frequency) {
+      case 'daily':
+        next.setDate(next.getDate() + interval);
+        break;
+      case 'weekly':
+        if (daysOfWeek && daysOfWeek.length > 1) {
+          next.setDate(next.getDate() + 1);
+        } else {
+          next.setDate(next.getDate() + (interval * 7));
+        }
+        break;
+      case 'monthly':
+        next.setMonth(next.getMonth() + interval);
+        break;
+      case 'yearly':
+        next.setFullYear(next.getFullYear() + interval);
+        break;
+    }
+    current = next;
+    iterations++;
+  }
+  return instances;
 }
 
 // ─── Comparisons ──────────────────────────────────────────────────────────────

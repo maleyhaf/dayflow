@@ -14,6 +14,7 @@ import {
   EventModalState,
   CategoryModalState,
   SettingsModalState,
+  RecurrenceOverride,
 } from '../types';
 import { applyThemeValue } from './theme';
 
@@ -124,7 +125,10 @@ type Action =
   | { type: 'IMPORT_GCAL_EVENTS'; payload: CalendarEvent[] }
   | { type: 'SET_DRAGGING'; payload: string | null }
   | { type: 'UPSERT_DAILY_NOTE'; payload: DailyNote }
-  | { type: 'DELETE_DAILY_NOTE'; payload: string };
+  | { type: 'DELETE_DAILY_NOTE'; payload: string }
+  | { type: 'UPSERT_RECURRENCE_OVERRIDE'; payload: { eventId: string; override: RecurrenceOverride } }
+  // "All events" edit: replace the series, and drop per-occurrence overrides for the fields that were changed
+  | { type: 'UPDATE_RECURRING_SERIES'; payload: { event: CalendarEvent; clearFields: string[] } };
 
 // ─── Reducer ───────────────────────────────────────────────────────────────────
 
@@ -213,6 +217,60 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, settingsModal: { open: true } };
     case 'SET_DRAGGING':
       return { ...state, draggingEventId: action.payload };
+    case 'UPSERT_RECURRENCE_OVERRIDE': {
+      const { eventId, override } = action.payload;
+      // ignore undefined keys so a partial update never wipes existing data
+      const incoming = Object.fromEntries(
+        Object.entries(override).filter(([, v]) => v !== undefined)
+      ) as RecurrenceOverride;
+      return {
+        ...state,
+        events: state.events.map(e => {
+          if (e.id !== eventId) return e;
+          const existing = e.recurrenceOverrides ?? [];
+          const prev = existing.find(o => o.instanceId === incoming.instanceId);
+          const merged: RecurrenceOverride = {
+            ...prev,
+            ...incoming,
+            ...(prev?.fullOverride || incoming.fullOverride
+              ? { fullOverride: { ...prev?.fullOverride, ...incoming.fullOverride } }
+              : {}),
+          };
+          return {
+            ...e,
+            recurrenceOverrides: prev
+              ? existing.map(o => o.instanceId === incoming.instanceId ? merged : o)
+              : [...existing, merged],
+          };
+        }),
+      };
+    }
+    case 'UPDATE_RECURRING_SERIES': {
+      const { event, clearFields } = action.payload;
+      return {
+        ...state,
+        events: state.events.map(e => {
+          if (e.id !== event.id) return e;
+          if (!event.recurrence) return { ...event, recurrenceOverrides: undefined };
+          const cleaned = (event.recurrenceOverrides ?? [])
+            .map(o => {
+              const next: RecurrenceOverride = { ...o };
+              if (clearFields.includes('details')) delete next.details;
+              if (clearFields.includes('subtasks')) delete next.subtasks;
+              if (next.fullOverride) {
+                const fo = { ...next.fullOverride } as Record<string, unknown>;
+                clearFields.forEach(f => delete fo[f]);
+                next.fullOverride = Object.keys(fo).length ? (fo as Partial<CalendarEvent>) : undefined;
+              }
+              return next;
+            })
+            // drop overrides that no longer carry anything
+            .filter(o => o.excluded || o.details !== undefined || o.subtasks !== undefined
+              || o.completed !== undefined || o.fullOverride !== undefined);
+          return { ...event, recurrenceOverrides: cleaned };
+        }),
+      };
+    }
     case 'IMPORT_GCAL_EVENTS': {
       const incoming = action.payload.filter(
         ge => !state.events.some(e => e.gcalId === ge.gcalId)

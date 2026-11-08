@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { CalendarEvent } from '../types';
-import { SLOT_HEIGHT, fmtDisplayTime } from '../utils/dateUtils';
+import { SLOT_HEIGHT, fmtDisplayTime, splitInstanceId } from '../utils/dateUtils';
 
 // ─── Ghost ────────────────────────────────────────────────────────────────────
 
@@ -115,6 +115,22 @@ export function useDragEvent(): UseDragEventReturn {
   const lastSnappedTimeRef = useRef<string>('');
   const lastSnappedDateRef = useRef<string>('');
   const enterCounters = useRef<WeakMap<Element, number>>(new WeakMap());
+
+  // Move an event. Occurrences of a recurring event only move themselves.
+  const moveEvent = useCallback((ev: CalendarEvent, changes: Partial<CalendarEvent>) => {
+    const { baseId, date: origDate } = splitInstanceId(ev.id);
+    if (ev.recurrence && origDate) {
+      dispatch({
+        type: 'UPSERT_RECURRENCE_OVERRIDE',
+        payload: {
+          eventId: baseId,
+          override: { instanceId: ev.id, date: origDate, fullOverride: changes },
+        },
+      });
+    } else {
+      dispatch({ type: 'UPDATE_EVENT', payload: { ...ev, ...changes } });
+    }
+  }, [dispatch]);
 
   // ── Highlight helpers ──────────────────────────────────────────────────────
 
@@ -244,14 +260,11 @@ export function useDragEvent(): UseDragEventReturn {
         // Remove ghost immediately on drop — don't wait for dragEnd
         removeGhost();
 
-        dispatch({
-          type: 'UPDATE_EVENT',
-          payload: { ...ev, date: dateStr, start: newStart, end: newEnd },
-        });
+        moveEvent(ev, { date: dateStr, start: newStart, end: newEnd });
         dispatch({ type: 'SET_DRAGGING', payload: null });
       },
     };
-  }, [dispatch]);
+  }, [dispatch, moveEvent]);
 
   // ── Month cell drop props ─────────────────────────────────────────────────
 
@@ -287,13 +300,10 @@ export function useDragEvent(): UseDragEventReturn {
 
       removeGhost();
 
-      dispatch({
-        type: 'UPDATE_EVENT',
-        payload: { ...ev, date: dateStr },
-      });
+      moveEvent(ev, { date: dateStr });
       dispatch({ type: 'SET_DRAGGING', payload: null });
     },
-  }), [dispatch]);
+  }), [dispatch, moveEvent]);
 
   return { getChipDragProps, getWeekColDropProps, getMonthCellDropProps };
 }

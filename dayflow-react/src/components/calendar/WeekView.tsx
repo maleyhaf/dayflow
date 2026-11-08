@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
-  parseDate, getWeekDays, fmtDate,
+  parseDate, getWeekDays, fmtDate, generateRecurringInstances, resolveEventById,
   fmtHourLabel, timeToY, timeDurationPx, SLOT_HEIGHT, DAY_SHORT,
 } from '../../utils/dateUtils';
 import { useDragEvent } from '../../hooks/useDragEvent';
@@ -11,13 +11,17 @@ import styles from './WeekView.module.css';
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export default function WeekView() {
-  const { state, dispatch, openNewEvent, openDailyNote} = useApp();
+  const { state, dispatch, openNewEvent, openDailyNote } = useApp();
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchor = parseDate(state.currentDate);
   const days = getWeekDays(anchor);
   const todayStr = fmtDate(new Date());
 
   const { getChipDragProps, getWeekColDropProps } = useDragEvent();
+
+  // for recurrance range (whats being viewed)
+  const rangeStart = fmtDate(days[0]);
+  const rangeEnd = fmtDate(days[6]);
 
   // Scroll to 7am on week change
   useEffect(() => {
@@ -26,9 +30,14 @@ export default function WeekView() {
     }
   }, [state.currentDate]);
 
+  // We need to expand recurring events for the current week view, so we generate instances of recurring events within the range of the week being viewed. 
+  // This ensures that all occurrences of recurring events are displayed correctly in the week view.
+  const expanded = state.events.flatMap(e =>
+    generateRecurringInstances(e, rangeStart, rangeEnd)
+  );
   const filtered = state.activeFilter
-    ? state.events.filter(e => e.category === state.activeFilter)
-    : state.events;
+    ? expanded.filter(e => e.category === state.activeFilter)
+    : expanded;
 
   const handleSlotClick = (dateStr: string, hour: number) => {
     dispatch({ type: 'SELECT_EVENT', payload: null });
@@ -37,17 +46,16 @@ export default function WeekView() {
 
   const handleChipClick = (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation();
-    const ev = state.events.find(ev => ev.id === eventId);
-    if (!ev) return;
-    // remove selected date if any, since we're now selecting an event
+    // Select the exact occurrence (id may be "parentId_YYYY-MM-DD") so notes,
+    // subtasks and edits apply to this event only
+    if (!resolveEventById(state.events, eventId)) return;
     dispatch({ type: 'SELECT_DAILY_NOTE', payload: null });
     dispatch({ type: 'SELECT_EVENT', payload: eventId });
-    //openEditEvent(ev);
   };
 
   // handle the date click to open the associated daily note
   const handleDateClick = (dateStr: string, today: boolean) => {
-   // use the helper
+    // use the helper
     openDailyNote(dateStr, today);
   };
 
@@ -64,7 +72,7 @@ export default function WeekView() {
             <div key={dateStr} className={styles.dayHeader}>
               <span className={styles.dayName}>{DAY_SHORT[day.getDay()]}</span>
               <button className={`${styles.dayNum} ${today ? styles.dayNumToday : ''} ${selected ? styles.dayNumSelected : ''}`} onClick={() => handleDateClick(dateStr, today)} >
-                  {day.getDate()}
+                {day.getDate()}
               </button>
             </div>
           );

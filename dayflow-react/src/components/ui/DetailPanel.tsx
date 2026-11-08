@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from './DetailPanel.module.css';
 import { useApp } from '../../context/AppContext';
 import { CalendarEvent, Category, DailyNote, Subtask } from '../../types';
-import { fmtDisplayTime, MONTH_SHORT } from '../../utils/dateUtils';
+import { fmtDisplayTime, MONTH_SHORT, resolveEventById, splitInstanceId } from '../../utils/dateUtils';
 import { SubtaskList } from '../events/EventModal';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,14 +42,36 @@ function EventDetailPanel({ state, dispatch, openEditEvent, selectedEvent }: { s
   useEffect(() => {
     setNotes(selectedEvent?.details ?? '');
     setSubtasks(selectedEvent?.subtasks.map(s => ({ ...s })) ?? []);
-  }, [state.selectedEventId, selectedEvent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEvent.id, selectedEvent.details, JSON.stringify(selectedEvent.subtasks)]);
 
-  const saveChanges = (updatedNotes: string, updatedSubtasks: typeof subtasks) => {
-    if (!selectedEvent) return;
-    dispatch({
-      type: 'UPDATE_EVENT',
-      payload: { ...selectedEvent, details: updatedNotes, subtasks: updatedSubtasks },
-    });
+  // Occurrences of a recurring event have ids like "parentId_YYYY-MM-DD"
+  const { baseId, date: instanceDate } = splitInstanceId(selectedEvent.id);
+  const isInstance = !!selectedEvent.recurrence && !!instanceDate;
+
+  const saveChanges = (updatedNotes: string, updatedSubtasks: Subtask[]) => {
+    if (isInstance) {
+      // Save as an override on the parent event
+      dispatch({
+        type: 'UPSERT_RECURRENCE_OVERRIDE',
+        payload: {
+          eventId: baseId,
+          override: {
+            instanceId: selectedEvent.id,
+            date: instanceDate as string,
+            details: updatedNotes,
+            subtasks: updatedSubtasks,
+            completed: selectedEvent.completed,
+          },
+        },
+      });
+    } else {
+      // Non-recurring, save normally
+      dispatch({
+        type: 'UPDATE_EVENT',
+        payload: { ...selectedEvent, details: updatedNotes, subtasks: updatedSubtasks },
+      });
+    }
   };
 
 
@@ -164,10 +186,24 @@ function EventDetailPanel({ state, dispatch, openEditEvent, selectedEvent }: { s
         <button
           className={`${styles.completeBtn} ${selectedEvent.completed ? styles.completeBtnDone : ''}`}
           onClick={() => {
-            dispatch({
-              type: 'UPDATE_EVENT',
-              payload: { ...selectedEvent, completed: !selectedEvent.completed },
-            });
+            if (isInstance) {
+              dispatch({
+                type: 'UPSERT_RECURRENCE_OVERRIDE',
+                payload: {
+                  eventId: baseId,
+                  override: {
+                    instanceId: selectedEvent.id,
+                    date: instanceDate as string,
+                    completed: !selectedEvent.completed,
+                  },
+                },
+              });
+            } else {
+              dispatch({
+                type: 'UPDATE_EVENT',
+                payload: { ...selectedEvent, completed: !selectedEvent.completed },
+              });
+            }
           }}
         >
           {selectedEvent.completed ? '✓' : 'Done'}
@@ -279,7 +315,11 @@ function DailyNoteDetailPanel({ dailyNote, isToday }: { dailyNote: DailyNote; is
 export default function DetailPanel() {
   const { state, dispatch, openEditEvent } = useApp();
 
-  const selectedEvent = state.events.find(e => e.id === state.selectedEventId);
+  // resolves either a normal event or one occurrence of a recurring event
+  const selectedEvent = useMemo(
+    () => resolveEventById(state.events, state.selectedEventId),
+    [state.events, state.selectedEventId]
+  );
   const selectedDailyNote = selectedEvent ? null : state.dailyNotes.find(dn => dn.date === state.selectedDate);
 
   if (selectedEvent) {

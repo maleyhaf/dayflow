@@ -17,6 +17,9 @@ export interface CalendarEvent {
   details: string;
   completed: boolean;
   subtasks: Subtask[];
+  recurrence?: RecurrenceRule; // optional recurrence rule
+  recurrenceId?: string; // optional recurrence id for instances of recurring events
+  recurrenceOverrides?: RecurrenceOverride[];
   gcalId: string | null;
   gcalSync: boolean;
 }
@@ -78,6 +81,29 @@ export interface SettingsModalState {
   open: boolean;
   //mode: 'edit' | 'theme';
   defaultTheme?: ColorTheme;
+}
+
+// adding recurrence rule type
+// this will be used to define the recurrence pattern for events
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type RecurrenceRule = {
+  frequency: RecurrenceFrequency;
+  interval: number;
+  daysOfWeek?: number[]; // for weekly recurrence, 0=Sunday, 1=Monday, ..., 6=Saturday
+  endDate?: string; // "YYYY-MM-DD"
+  endsAfter?: number; // number of occurrences
+}
+
+// override for a specific instance of a recurring event
+export interface RecurrenceOverride {
+  instanceId: string;   // "parentId_YYYY-MM-DD"
+  date: string;         // ORIGINAL occurrence date (matches the instanceId suffix)
+  excluded?: boolean;   // this occurrence was deleted / detached from the series
+  details?: string;
+  subtasks?: Subtask[];
+  completed?: boolean;
+  // if the whole instance was edited (title, time, color etc)
+  fullOverride?: Partial<CalendarEvent>;
 }
 
 

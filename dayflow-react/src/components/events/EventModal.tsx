@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
-import { CalendarEvent, Subtask } from '../../types';
-import { fmtDate } from '../../utils/dateUtils';
+import { CalendarEvent, RecurrenceRule, RecurrenceFrequency, RecurrenceOverride, Subtask } from '../../types';
+import { fmtDate, parseDate, diffDays, addDays, splitInstanceId } from '../../utils/dateUtils';
 import styles from './EventModal.module.css';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -278,6 +278,9 @@ export default function EventModal() {
   const [gcalSync, setGcalSync] = useState(true);
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [titleError, setTitleError] = useState(false);
+  const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(null);
+
+  const [saveScope, setSaveScope] = useState<'this' | 'all'>('this');
 
   const titleRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -297,6 +300,8 @@ export default function EventModal() {
       setCompleted(existing.completed);
       setGcalSync(existing.gcalSync);
       setSubtasks(existing.subtasks.map(s => ({ ...s })));
+      setRecurrence(existing.recurrence ?? null);
+      setSaveScope('this');
     } else {
       setTitle('');
       setDate(modal.defaultDate ?? fmtDate(new Date()));
@@ -308,6 +313,7 @@ export default function EventModal() {
       setCompleted(false);
       setGcalSync(true);
       setSubtasks([]);
+      setRecurrence(null);
     }
     setTitleError(false);
 
@@ -362,22 +368,131 @@ export default function EventModal() {
       subtasks,
       gcalSync,
       gcalId: existing?.gcalId ?? null,
+      recurrence: recurrence ?? undefined,
     };
 
-    if (isEdit) {
-      dispatch({ type: 'UPDATE_EVENT', payload: ev });
-      // Keep this event selected so detail panel refreshes
-      dispatch({ type: 'SELECT_EVENT', payload: ev.id });
-    } else {
-      dispatch({ type: 'ADD_EVENT', payload: ev });
-      dispatch({ type: 'SELECT_EVENT', payload: ev.id });
+    // Editing one occurrence (or the whole series) of a repeating event
+    if (isEdit && existing?.recurrence) {
+      const { baseId, date: origDate } = splitInstanceId(existing.id);
+      const parent = state.events.find(e => e.id === baseId);
+      if (parent && origDate) {
+        // which fields did the user actually change?
+        const changed = {
+          title: ev.title !== existing.title,
+          date: ev.date !== existing.date,
+          start: ev.start !== existing.start,
+          end: ev.end !== existing.end,
+          color: ev.color !== existing.color,
+          category: ev.category !== existing.category,
+          details: ev.details !== existing.details,
+          subtasks: JSON.stringify(ev.subtasks) !== JSON.stringify(existing.subtasks),
+          completed: ev.completed !== existing.completed,
+        };
+        const recurrenceChanged =
+          JSON.stringify(recurrence ?? null) !== JSON.stringify(parent.recurrence ?? null);
+
+        if (saveScope === 'this') {
+          if (recurrenceChanged) {
+            // Repeat rule changed for this event only → detach it from the series
+            // and make it its own event with the new repeat setting.
+            dispatch({
+              type: 'UPSERT_RECURRENCE_OVERRIDE',
+              payload: {
+                eventId: baseId,
+                override: { instanceId: existing.id, date: origDate, excluded: true },
+              },
+            });
+            const detached: CalendarEvent = {
+              ...ev,
+              id: 'ev_' + Math.random().toString(36).slice(2, 9),
+              gcalId: null,
+              recurrenceOverrides: undefined,
+            };
+            dispatch({ type: 'ADD_EVENT', payload: detached });
+            dispatch({ type: 'SELECT_EVENT', payload: detached.id });
+          } else {
+            // Only store what changed so the rest keeps following the series
+            const fullOverride: Partial<CalendarEvent> = {};
+            if (changed.title) fullOverride.title = ev.title;
+            if (changed.date) fullOverride.date = ev.date;
+            if (changed.start) fullOverride.start = ev.start;
+            if (changed.end) fullOverride.end = ev.end;
+            if (changed.color) fullOverride.color = ev.color;
+            if (changed.category) fullOverride.category = ev.category;
+            const override: RecurrenceOverride = {
+              instanceId: existing.id,
+              date: origDate,
+              ...(Object.keys(fullOverride).length ? { fullOverride } : {}),
+              ...(changed.details ? { details: ev.details } : {}),
+              ...(changed.subtasks ? { subtasks: ev.subtasks } : {}),
+              ...(changed.completed ? { completed: ev.completed } : {}),
+            };
+            if (Object.keys(override).length > 2) {
+              dispatch({ type: 'UPSERT_RECURRENCE_OVERRIDE', payload: { eventId: baseId, override } });
+            }
+            dispatch({ type: 'SELECT_EVENT', payload: existing.id });
+          }
+        } else {
+          // "All events": update the series with only the fields that changed
+          const updated: CalendarEvent = { ...parent, recurrence: recurrence ?? undefined, gcalSync: ev.gcalSync };
+          if (changed.title) updated.title = ev.title;
+          if (changed.start) updated.start = ev.start;
+          if (changed.end) updated.end = ev.end;
+          if (changed.color) updated.color = ev.color;
+          if (changed.category) updated.category = ev.category;
+          if (changed.details) updated.details = ev.details;
+          if (changed.subtasks) updated.subtasks = ev.subtasks.map(t => ({ ...t, done: false }));
+          // moving the date shifts the whole series by the same amount
+          if (changed.date) {
+            updated.date = fmtDate(addDays(parseDate(parent.date), diffDays(existing.date, ev.date)));
+          }
+          const clearFields = (['title', 'date', 'start', 'end', 'color', 'category', 'details', 'subtasks'] as const)
+            .filter(f => changed[f]);
+          dispatch({ type: 'UPDATE_RECURRING_SERIES', payload: { event: updated, clearFields } });
+          // "completed" is always per-occurrence
+          if (changed.completed) {
+            dispatch({
+              type: 'UPSERT_RECURRENCE_OVERRIDE',
+              payload: {
+                eventId: baseId,
+                override: { instanceId: existing.id, date: origDate, completed: ev.completed },
+              },
+            });
+          }
+          dispatch({
+            type: 'SELECT_EVENT',
+            payload: recurrence ? `${baseId}_${changed.date ? ev.date : origDate}` : baseId,
+          });
+        }
+        close();
+        return;
+      }
     }
 
+    // Plain create / edit of a non-repeating event
+    dispatch({ type: isEdit ? 'UPDATE_EVENT' : 'ADD_EVENT', payload: ev });
+    dispatch({ type: 'SELECT_EVENT', payload: ev.id });
     close();
   };
 
   const handleDelete = () => {
     if (!existing) return;
+    if (existing.recurrence) {
+      const { baseId, date: origDate } = splitInstanceId(existing.id);
+      if (origDate && saveScope === 'this') {
+        if (!window.confirm('Delete this event only?')) return;
+        dispatch({
+          type: 'UPSERT_RECURRENCE_OVERRIDE',
+          payload: { eventId: baseId, override: { instanceId: existing.id, date: origDate, excluded: true } },
+        });
+        dispatch({ type: 'SELECT_EVENT', payload: null });
+      } else {
+        if (!window.confirm('Delete ALL events in this series?')) return;
+        dispatch({ type: 'DELETE_EVENT', payload: baseId });
+      }
+      close();
+      return;
+    }
     if (!window.confirm('Delete this event?')) return;
     dispatch({ type: 'DELETE_EVENT', payload: existing.id });
     close();
@@ -445,6 +560,70 @@ export default function EventModal() {
             </div>
           </div>
 
+          {/* Recurrence */}
+          <div className={styles.field}>
+            <label className={styles.label}>Repeat</label>
+            <select
+              className={styles.select}
+              value={recurrence?.frequency ?? ''}
+              onChange={e => {
+                const val = e.target.value;
+                if (!val) {
+                  setRecurrence(null);
+                } else {
+                  setRecurrence({
+                    frequency: val as RecurrenceFrequency,
+                    interval: 1,
+                  });
+                }
+              }}
+            >
+              <option value="">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+
+          {/* Only show these if recurrence is set */}
+          {recurrence && (
+            <div className={styles.field}>
+              <label className={styles.label}>Ends</label>
+              <div className={styles.row2}>
+                <div className={styles.field}>
+                  <label className={styles.label}>After</label>
+                  <input
+                    type="number"
+                    className={styles.input}
+                    min={1}
+                    max={100}
+                    placeholder="occurrences"
+                    value={recurrence.endsAfter ?? ''}
+                    onChange={e => setRecurrence({
+                      ...recurrence,
+                      endsAfter: e.target.value ? Number(e.target.value) : undefined,
+                      endDate: undefined,
+                    })}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>On date</label>
+                  <input
+                    type="date"
+                    className={styles.input}
+                    value={recurrence.endDate ?? ''}
+                    onChange={e => setRecurrence({
+                      ...recurrence,
+                      endDate: e.target.value || undefined,
+                      endsAfter: undefined,
+                    })}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Row: category */}
           <div className={styles.field}>
             <label className={styles.label}>Category</label>
@@ -506,6 +685,13 @@ export default function EventModal() {
         </div>
 
         {/* ── Footer ─────────────────────────────────────────── */}
+        {isEdit && existing?.recurrence && (
+          <div className={styles.scopeHint}>
+            {saveScope === 'this'
+              ? 'Changes (and Delete) apply to this event only. Changing "Repeat" here makes it a separate event.'
+              : 'Changes (and Delete) apply to every event in the series.'}
+          </div>
+        )}
         <div className={styles.footer}>
           {isEdit && (
             <button
@@ -520,6 +706,27 @@ export default function EventModal() {
             <button type="button" className={styles.cancelBtn} onClick={close}>
               Cancel
             </button>
+
+            {isEdit && existing?.recurrence && (
+              <div className={styles.scopeToggle}>
+                <button
+                  className={`${styles.scopeBtn} ${saveScope === 'this' ? styles.scopeBtnActive : ''}`}
+                  onClick={() => setSaveScope('this')}
+                  type="button"
+                >
+                  This event
+                </button>
+                <button
+                  className={`${styles.scopeBtn} ${saveScope === 'all' ? styles.scopeBtnActive : ''}`}
+                  onClick={() => setSaveScope('all')}
+                  type="button"
+                >
+                  All events
+                </button>
+              </div>
+            )}
+
+
             <button
               type="button"
               className={styles.saveBtn}
