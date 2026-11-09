@@ -1,63 +1,47 @@
-# DayFlow
+# Dayflow 🗓
 
-A personal planner and schedule builder I built because I wanted something that actually felt like mine. Think of those weekly planner notebooks you can buy at Indigo but digital, faster, and connected to your Google Calendar. Week view, month view, drag and drop, full event editing right in a popup modal, subtasks, categories, color themes -- all of it.
+A calendar built around how my days actually go: classes, gym, work, and the small stuff in between.
 
-## What it does
+## Why I made this
 
-You get a full calendar that you can flip between week and month view. Every empty slot is clickable and opens a create modal right there. Every existing event is also clickable and opens the same modal fully editable -- no separate edit page, no extra clicks, just everything in one place.
+I was juggling school, the gym and work across three different apps, and none of them let me see a day as one thing. Calendars were good at *when* and bad at *what I needed to do*. 
 
-Events are draggable. In week view you can grab an event and drag it to a different time or day, it snaps to 15 minute intervals and shows a live ghost chip on your cursor with the updated time as you drag. In month view dragging moves the event to a different day and keeps the time.
+The calender apps available already either did not let me have the level of organization I wanted or were too complicated to be used as a quick daily tool. I wanted this calender to allow the personalization and organization you would get from a physical weekly planner book, with the mobility and efficiency of a web app.
 
-Google Calendar is wired in through the Anthropic MCP connector. Your GCal events pull in automatically on load and you can push new DayFlow events back to GCal with a checkbox when creating them.
+I wanted one place where an event isn't just a time block. It has its own notes, its own to-do list, and a color and category that tell me at a glance what kind of day I'm having.
 
-## Features
+## What it does so far
 
-- Week and month calendar views with keyboard navigation
-- Click any slot to create an event at that time
-- Click any event to edit it instantly in the same modal
-- Drag and drop rescheduling with 15 min snap and live time preview on the ghost
-- Event colors, categories, notes, subtasks with checkboxes
-- Mark events complete with a strikethrough
-- Category filtering from the sidebar
-- 4 color palette presets plus custom hex accent input
-- Dark mode
-- Mini calendar in the sidebar that dots days with events
-- All events and categories persist in localStorage
-- Google Calendar two way sync via Anthropic MCP
+- **Week and month views** that I can click through and drag events around in
+- **Categories** with their own colors and icons (School, Gym, Work, Personal…)
+- **Notes and subtasks on every event**, so "Assignment 3" can carry its own checklist
+- **Daily notes**: click any date to jot down how the day went
+- **Repeating events** where each occurrence keeps its own notes and checklist, so my Monday run isn't tied to my Friday run
+- **Themes and dark mode**, because I look at this a lot & it's psychologically proven to lighten your mood looking at something you find pleasing. For example, I love making everything baby pink because it's my favorite color
+- Everything saves in my browser, so it's all still there when I come back
 
-## Tech
+## Where I'm at
 
-Built with Create React App and TypeScript. No component libraries, no date libraries, just React with useReducer for state, CSS Modules for styling, and the HTML5 drag and drop API for the dragging. Date math is all custom in a single utils file. Google Calendar sync goes through the Anthropic API with the Google Calendar MCP server attached.
+This started as quick project build and it's grown a lot since. 
 
-## Running it
+Recently I spent a good while fixing how repeating events work. Editing one occurrence used to change all of them, and now you choose between "this event" and "all events". It was one of those bugs that taught me a lot about how calendars actually work under the hood.
 
-```bash
+**Up next:**
+- [ ] User accounts set up with Google
+- [ ] Finish Google Calendar sync
+- [ ] a List view of events/tasks along with the Week & Month view
+
+## What I've learned
+
+It can take a lot of patience, even when working with LLM models, to build very specific projects. This calender app, overall, is very stright forward and nothing new. It's how I wanted the details of it (the subtasks & notes for every event, the notes & subtasks for daily notes, the color theme personalization) that look the longest to figure out and to get them working. Building this project with the help of AI did speed up the code procress itself. However, the design & usability details being personalized to cater me taught me a lot of patience.
+
+## Running it yourself
+
+```
 npm install
 npm start
 ```
 
-Needs Node 16+. Opens on localhost:3000.
+---
 
-## Project structure
-
-```
-src/
-  components/
-    calendar/     # WeekView, MonthView, CalendarHeader, EventChip
-    events/       # EventModal
-    layout/       # TopNav, Sidebar
-  context/        # AppContext with useReducer state + localStorage persistence
-  hooks/          # useDragEvent
-  types/          # shared TypeScript types
-  utils/          # dateUtils (all date math in one place)
-  styles/         # globals.css with CSS custom properties for theming
-```
-
-## Keyboard shortcuts
-
-| Key | Action |
-|-----|--------|
-| N | New event |
-| T | Jump to today |
-| Left / Right arrow | Previous / next week or month |
-| Esc | Close modal |
+*Made by Maleyha Fatima. Ontario, CA.*
