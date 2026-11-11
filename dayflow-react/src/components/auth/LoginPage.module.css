@@ -1,8 +1,7 @@
 .page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;       /* the app locks html/body scrolling, so scroll here instead */
   display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 24px;
   background: var(--bg);
   background-image:
@@ -11,6 +10,7 @@
 }
 
 .card {
+  margin: auto;           /* centers, but stays reachable when the window is short */
   width: 100%;
   max-width: 400px;
   padding: 40px 36px 32px;
@@ -137,3 +137,11 @@
   cursor: pointer;
 }
 .statusBtn:hover { background: var(--surface2); }
+
+.legal {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-hint);
+}
+.legal a { color: var(--text-muted); }
+.legal a:hover { color: var(--accent); }

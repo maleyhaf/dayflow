@@ -32,6 +32,7 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'work', name: 'Work', color: '#F59E0B', icon: '💼' },
   { id: 'personal', name: 'Personal', color: '#E85D75', icon: '✨' },
   { id: 'gcal', name: 'Google Calendar', color: '#34A853', icon: '📅' },
+  { id: 'daily', name: 'Daily Notes', color: '#6366F1', icon: '📝' },
 ];
 
 // New accounts start with the default categories above and nothing else.

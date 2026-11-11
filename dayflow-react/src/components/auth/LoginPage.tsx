@@ -68,6 +68,9 @@ export default function LoginPage() {
         <p className={styles.fine}>
           New here? Signing in with Google creates your account automatically.
         </p>
+        <p className={styles.legal}>
+          By continuing you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.
+        </p>
       </div>
     </div>
   );

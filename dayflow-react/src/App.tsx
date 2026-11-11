@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './components/auth/LoginPage';
 import StatusScreen from './components/auth/StatusScreen';
+import LegalPage from './components/legal/LegalPage';
 import TopNav from './components/layout/TopNav';
 import Sidebar from './components/layout/Sidebar';
 import CalendarView from './components/calendar/CalendarView';
@@ -118,6 +119,11 @@ function AuthGate() {
 }
 
 export default function App() {
+  // public pages: reachable without signing in (Google needs to be able to open these)
+  const path = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+  if (path === '/privacy') return <LegalPage kind="privacy" />;
+  if (path === '/terms') return <LegalPage kind="terms" />;
+
   return (
     <AuthProvider>
       <AuthGate />
