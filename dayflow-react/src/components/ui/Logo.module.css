@@ -1,0 +1,12 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  letter-spacing: -0.5px;
+  color: var(--text);
+  line-height: 1;
+  user-select: none;
+}
+.mark { display: block; flex-shrink: 0; }
+.word { line-height: 1; }
+.accent { color: var(--accent); }

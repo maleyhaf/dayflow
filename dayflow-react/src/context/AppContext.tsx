@@ -4,6 +4,7 @@ import React, {
   useReducer,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import {
@@ -17,14 +18,13 @@ import {
   RecurrenceOverride,
 } from '../types';
 import { applyThemeValue } from './theme';
+import { loadAll, upsertRows, deleteRows, eventToRow, categoryToRow, noteToRow } from '../lib/db';
+import { useDiffSync, SyncStatus } from '../hooks/useDiffSync';
 
 // ─── Default Data ──────────────────────────────────────────────────────────────
 
 const today = new Date();
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
-const addDays = (d: Date, n: number) => {
-  const r = new Date(d); r.setDate(r.getDate() + n); return r;
-};
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 'school', name: 'School', color: '#2D5BE3', icon: '📚' },
@@ -32,52 +32,9 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'work', name: 'Work', color: '#F59E0B', icon: '💼' },
   { id: 'personal', name: 'Personal', color: '#E85D75', icon: '✨' },
   { id: 'gcal', name: 'Google Calendar', color: '#34A853', icon: '📅' },
-  { id: 'daily', name: 'Daily Notes', color: '#6366F1', icon: '📝' },
 ];
 
-const DEFAULT_DAILY_NOTES: DailyNote[] = [
-  {
-    id: 'd1', title: fmt(today),
-    date: fmt(today),
-    details: 'This is a daily note for today.',
-    subtasks: [], gcalId: null, gcalSync: false,
-  },
-];
-
-const DEFAULT_EVENTS: CalendarEvent[] = [
-  {
-    id: 'e1', title: 'CMPUT 301 Lecture', category: 'school', color: '#2D5BE3',
-    date: fmt(today), start: '09:00', end: '10:00',
-    details: 'Chapter 4 — OOP patterns. Bring laptop.',
-    completed: false,
-    subtasks: [
-      { id: 's1', text: 'Review slides', done: false },
-      { id: 's2', text: 'Do practice problems', done: true },
-    ],
-    gcalId: null, gcalSync: false,
-  },
-  {
-    id: 'e2', title: 'Morning Run', category: 'gym', color: '#10B981',
-    date: fmt(today), start: '07:00', end: '08:00',
-    details: '5km route through Hawrelak Park',
-    completed: true, subtasks: [], gcalId: null, gcalSync: false,
-  },
-  {
-    id: 'e3', title: 'STAT 252 Assignment', category: 'school', color: '#6366F1',
-    date: fmt(addDays(today, 1)), start: '14:00', end: '16:00',
-    details: 'Assignment 3 due Friday', completed: false,
-    subtasks: [
-      { id: 's3', text: 'Q1–Q5', done: false },
-      { id: 's4', text: 'Q6–Q10', done: false },
-    ],
-    gcalId: null, gcalSync: false,
-  },
-  {
-    id: 'e4', title: 'Grocery run', category: 'personal', color: '#E85D75',
-    date: fmt(addDays(today, 2)), start: '11:00', end: '12:00',
-    details: '', completed: false, subtasks: [], gcalId: null, gcalSync: false,
-  },
-];
+// New accounts start with the default categories above and nothing else.
 
 // ─── State Shape ───────────────────────────────────────────────────────────────
 
@@ -98,11 +55,17 @@ interface AppState {
   isDark: boolean;
   settingsModal: SettingsModalState;
   draggingEventId: string | null;
+  loaded: boolean;             // account data has been fetched from the database
+  loadError: string | null;
+  saveStatus: SyncStatus;
 }
 
 // ─── Actions ───────────────────────────────────────────────────────────────────
 
 type Action =
+  | { type: 'HYDRATE'; payload: { events: CalendarEvent[]; categories: Category[]; dailyNotes: DailyNote[]; theme?: string; isDark?: boolean } }
+  | { type: 'LOAD_ERROR'; payload: string }
+  | { type: 'SET_SAVE_STATUS'; payload: SyncStatus }
   | { type: 'SET_VIEW'; payload: ViewMode }
   | { type: 'SET_DATE'; payload: string }
   | { type: 'SET_FILTER'; payload: string | null }
@@ -134,6 +97,21 @@ type Action =
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'HYDRATE': {
+      const { events, categories, dailyNotes, theme, isDark } = action.payload;
+      return {
+        ...state,
+        events, categories, dailyNotes,
+        theme: theme ?? state.theme,
+        isDark: isDark ?? state.isDark,
+        loaded: true,
+        loadError: null,
+      };
+    }
+    case 'LOAD_ERROR':
+      return { ...state, loadError: action.payload };
+    case 'SET_SAVE_STATUS':
+      return state.saveStatus === action.payload ? state : { ...state, saveStatus: action.payload };
     case 'SET_VIEW':
       return { ...state, viewMode: action.payload };
     case 'SET_DATE':
@@ -291,7 +269,7 @@ interface AppContextValue {
   openNewEvent: (date?: string, time?: string) => void;
   openEditEvent: (event: CalendarEvent) => void;
   openDailyNote: (dateStr: string, today: boolean) => void;
-
+  retryLoad: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -313,20 +291,11 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   }
 }
 
-export function AppProvider({ children }: { children: ReactNode }) {
+export function AppProvider({ children, userId }: { children: ReactNode; userId: string }) {
   const initialState: AppState = {
-    events: (() => {
-      const stored = loadFromStorage('df_events', DEFAULT_EVENTS);
-      return Array.isArray(stored) ? stored : DEFAULT_EVENTS;
-    })(),
-    categories: (() => {
-      const stored = loadFromStorage('df_cats', DEFAULT_CATEGORIES);
-      return Array.isArray(stored) ? stored : DEFAULT_CATEGORIES;
-    })(),
-    dailyNotes: (() => {
-      const stored = loadFromStorage('df_daily_notes', DEFAULT_DAILY_NOTES);
-      return Array.isArray(stored) ? stored : DEFAULT_DAILY_NOTES;
-    })(),
+    events: [],
+    categories: [],
+    dailyNotes: [],
     viewMode: 'week',
     currentDate: fmt(today),
     activeFilter: null,
@@ -340,22 +309,105 @@ export function AppProvider({ children }: { children: ReactNode }) {
     isDark: loadFromStorage('df_isDark', false),
     settingsModal: { open: false },
     draggingEventId: null,
+    loaded: false,
+    loadError: null,
+    saveStatus: 'saved',
   };
 
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Persist events + categories + daily notes
-  useEffect(() => {
-    localStorage.setItem('df_events', JSON.stringify(state.events));
-  }, [state.events]);
+  // ── Load this user's data from the database ──────────────────────────────
+  // baselines = what the database currently holds, so we only ever send changes
+  const baseEvents = useRef(new Map<string, string>());
+  const baseCats = useRef(new Map<string, string>());
+  const baseNotes = useRef(new Map<string, string>());
+  const baseSettings = useRef(new Map<string, string>());
+  const [loadAttempt, setLoadAttempt] = React.useState(0);
 
   useEffect(() => {
-    localStorage.setItem('df_cats', JSON.stringify(state.categories));
-  }, [state.categories]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await loadAll(userId);
+        if (cancelled) return;
+        const fill = (m: Map<string, string>, items: { id: string }[]) => {
+          m.clear();
+          items.forEach(i => m.set(i.id, JSON.stringify(i)));
+        };
+        // brand-new account: give them the default categories (saved by the sync below)
+        const categories = data.settings || data.categories.length ? data.categories : DEFAULT_CATEGORIES;
+        fill(baseEvents.current, data.events);
+        fill(baseCats.current, data.categories);
+        fill(baseNotes.current, data.dailyNotes);
+        baseSettings.current.clear();
+        if (data.settings) {
+          baseSettings.current.set('settings', JSON.stringify({ id: 'settings', ...data.settings }));
+        }
+        dispatch({
+          type: 'HYDRATE',
+          payload: {
+            events: data.events,
+            categories,
+            dailyNotes: data.dailyNotes,
+            theme: data.settings?.theme,
+            isDark: data.settings?.isDark,
+          },
+        });
+      } catch (err: any) {
+        console.error('Failed to load data', err);
+        if (!cancelled) dispatch({ type: 'LOAD_ERROR', payload: err?.message ?? 'Could not load your data.' });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId, loadAttempt]);
 
-  useEffect(() => {
-    localStorage.setItem('df_daily_notes', JSON.stringify(state.dailyNotes));
-  }, [state.dailyNotes]);
+  // ── Save changes back (debounced, only what changed) ─────────────────────
+  const statuses = useRef<Record<string, SyncStatus>>({});
+  const reportStatus = useCallback((table: string) => (s: SyncStatus) => {
+    statuses.current[table] = s;
+    const all = Object.values(statuses.current);
+    dispatch({
+      type: 'SET_SAVE_STATUS',
+      payload: all.includes('error') ? 'error' : all.includes('saving') ? 'saving' : 'saved',
+    });
+  }, []);
+  const onEventsStatus = React.useMemo(() => reportStatus('events'), [reportStatus]);
+  const onCatsStatus = React.useMemo(() => reportStatus('categories'), [reportStatus]);
+  const onNotesStatus = React.useMemo(() => reportStatus('notes'), [reportStatus]);
+  const onSettingsStatus = React.useMemo(() => reportStatus('settings'), [reportStatus]);
+
+  useDiffSync({
+    items: state.events, ready: state.loaded, baseline: baseEvents, onStatus: onEventsStatus,
+    push: async (ups, dels) => {
+      await upsertRows('events', ups.map(e => eventToRow(e, userId)), 'user_id,id');
+      await deleteRows('events', userId, dels);
+    },
+  });
+  useDiffSync({
+    items: state.categories, ready: state.loaded, baseline: baseCats, onStatus: onCatsStatus,
+    push: async (ups, dels) => {
+      await upsertRows('categories', ups.map(c => categoryToRow(c, userId)), 'user_id,id');
+      await deleteRows('categories', userId, dels);
+    },
+  });
+  useDiffSync({
+    items: state.dailyNotes, ready: state.loaded, baseline: baseNotes, onStatus: onNotesStatus,
+    push: async (ups, dels) => {
+      await upsertRows('daily_notes', ups.map(n => noteToRow(n, userId)), 'user_id,id');
+      await deleteRows('daily_notes', userId, dels);
+    },
+  });
+  const settingsItems = React.useMemo(
+    () => [{ id: 'settings', theme: state.theme, isDark: state.isDark }],
+    [state.theme, state.isDark]
+  );
+  useDiffSync({
+    items: settingsItems, ready: state.loaded, baseline: baseSettings, onStatus: onSettingsStatus,
+    push: async (ups) => {
+      const s = ups[0];
+      if (s) await upsertRows('user_settings', [{ user_id: userId, theme: s.theme, is_dark: s.isDark }], 'user_id');
+    },
+  });
 
   // Apply dark mode — toggle body.dark class and clear any inline surface overrides
   useEffect(() => {
@@ -430,8 +482,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.dailyNotes]);
 
+  const retryLoad = useCallback(() => {
+    dispatch({ type: 'LOAD_ERROR', payload: '' });
+    setLoadAttempt(n => n + 1);
+  }, []);
+
   return (
-    <AppContext.Provider value={{ state, dispatch, openNewEvent, openEditEvent, openDailyNote }}>
+    <AppContext.Provider value={{ state, dispatch, openNewEvent, openEditEvent, openDailyNote, retryLoad }}>
       {children}
     </AppContext.Provider>
   );

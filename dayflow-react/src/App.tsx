@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoginPage from './components/auth/LoginPage';
+import StatusScreen from './components/auth/StatusScreen';
 import TopNav from './components/layout/TopNav';
 import Sidebar from './components/layout/Sidebar';
 import CalendarView from './components/calendar/CalendarView';
@@ -9,7 +12,7 @@ import { fmtDate, addDays, addMonths } from './utils/dateUtils';
 import './styles/globals.css';
 import styles from './App.module.css';
 
-function AppShell() {
+function CalendarApp() {
   const { state, dispatch, openNewEvent, openDailyNote } = useApp();
 
   useEffect(() => {
@@ -81,10 +84,43 @@ function AppShell() {
   );
 }
 
-export default function App() {
+// Waits for the user's data to load before showing the calendar
+function AppShell() {
+  const { state, retryLoad } = useApp();
+  const { signOut } = useAuth();
+
+  if (state.loadError) {
+    return (
+      <StatusScreen
+        message={`Couldn't load your calendar: ${state.loadError}`}
+        actions={[
+          { label: 'Try again', onClick: retryLoad },
+          { label: 'Sign out', onClick: signOut },
+        ]}
+      />
+    );
+  }
+  if (!state.loaded) return <StatusScreen message="Loading your calendar…" />;
+  return <CalendarApp />;
+}
+
+// Shows the login page until someone is signed in
+function AuthGate() {
+  const { user, loading } = useAuth();
+  if (loading) return <StatusScreen message="Loading…" />;
+  if (!user) return <LoginPage />;
+  // key = user id, so switching accounts always starts from clean state
   return (
-    <AppProvider>
+    <AppProvider key={user.id} userId={user.id}>
       <AppShell />
     </AppProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   );
 }
